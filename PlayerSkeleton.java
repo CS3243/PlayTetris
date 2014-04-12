@@ -1,4 +1,3 @@
-
 public class PlayerSkeleton {
 	// ALPHA refers to the coefficient for rows cleared feature
 	public static final double ALPHA = 0.5;
@@ -338,8 +337,33 @@ public class PlayerSkeleton {
 	
 	// The function returns the number of holes detected in a specific row
 	public int getNumberOfHoles(int[][] field, int row) {
-		// TO BE IMPELMENTED
-		return 0;
+		if(row < 0){
+			System.out.println("row num should not be negative");
+			return -1;//Exceptions?
+		}
+		
+		if(row >= field.length){
+			System.out.println("row num should not exceed the maximum");
+			return -1; //Exceptions?
+		}
+		
+		if(row == field.length - 1){
+			return 0;
+		}else{
+			int[] spacesAtTheRow = field[row];
+			
+			//Start counting
+			int holeNum = 0;
+			for(int colNum = 0; colNum < spacesAtTheRow.length; colNum ++){
+				int occupiedIndicator = spacesAtTheRow[colNum];
+				
+				if(occupiedIndicator != 0){
+					holeNum ++;
+				}
+			}
+			
+			return holeNum;
+		}
 	}
 	
 	
@@ -352,6 +376,11 @@ public class PlayerSkeleton {
     	
     	return result;
     }
+	
+	/* *********************************************************************************
+	 * Helper Functions
+	 * ********************************************************************************/
+	
 	
 	public static void main(String[] args) {
 		State s = new State();
