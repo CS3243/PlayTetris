@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 public class PlayerSkeleton {
 	// ALPHA refers to the coefficient for rows cleared feature
 	public static final double ALPHA = 0.5;
@@ -348,16 +350,14 @@ public class PlayerSkeleton {
 		}
 		
 		if(row == field.length - 1){
-			return 0;
+			return 0;//Cause the top row will not have any holes by definition
 		}else{
 			int[] spacesAtTheRow = field[row];
 			
 			//Start counting
 			int holeNum = 0;
-			for(int colNum = 0; colNum < spacesAtTheRow.length; colNum ++){
-				int occupiedIndicator = spacesAtTheRow[colNum];
-				
-				if(occupiedIndicator != 0){
+			for(int colNum = 0; colNum < spacesAtTheRow.length; colNum ++){				
+				if(isHole(field,row,colNum)){
 					holeNum ++;
 				}
 			}
@@ -367,20 +367,127 @@ public class PlayerSkeleton {
 	}
 	
 	
-	int[][] getDependendLinesSet(int[][] field) {
+	public int[][] getDependendLinesSet(int[][] field) {
     	// TO BE IMPLEMENTED
     	
     	// result[i] stores the line number of ith row's dependent lines.
     	// result[i][0] store the number of dependent lines of the ith row.
     	int[][] result=new int[State.ROWS][1];
     	
+    	//The following are calculating the upper rows' dependent rows first, in order to reduce the duplicate calculations.
+    	boolean[][] dependentRows = new boolean[State.ROWS][State.ROWS];
+    	for(int row = State.ROWS - 2; row<0; row--){
+    		setDependentRowsOfARow(field,row,dependentRows);
+    	}
+    	
     	return result;
     }
 	
-	/* *********************************************************************************
-	 * Helper Functions
-	 * ********************************************************************************/
+	private int countNumberOfDependentRows(boolean dependentRows[][],int row){
+		boolean[] dependentRowsOfTheRow = dependentRows[row];
+		
+		int count = 0;
+		for(boolean isDependentRow:dependentRowsOfTheRow){
+			if(isDependentRow){
+				count++;
+			}
+		}
+		
+		return count;
+	}
+	private void setDependentRowsOfARow(int field[][],int row,boolean dependentRows[][]){
+		//This method will return an array of dependent rows' number of the row we choose
+		ArrayList<Integer> holes = getHoles(field,row);
+		boolean currentDependentRows[] = new boolean[State.ROWS];
+		for(int col: holes){
+			boolean[] dependentRowsOfTheHole = getDependentRowsOfAHole(field,row,col,dependentRows);
+			currentDependentRows = combineDependentRows(currentDependentRows,dependentRowsOfTheHole);
+		}
+		
+		dependentRows[row] = currentDependentRows;
+	}
 	
+	private boolean[] getDependentRowsOfAHole(int field[][],int row,int col,boolean dependentRows[][]){
+		int rowAboveTheHole = getTheRowDirectlyAboveAHole(field,row,col);
+		
+		//Add the rowAboveTheHole as the dependent row of the row the hole is at
+		boolean[] dependentRowsOfTheHole = new boolean[State.ROWS];
+		dependentRowsOfTheHole[rowAboveTheHole] = true;
+		
+		dependentRowsOfTheHole = combineDependentRows(dependentRowsOfTheHole,dependentRows[rowAboveTheHole]);
+		
+		return dependentRowsOfTheHole;
+	}
+	
+	private ArrayList<Integer> getHoles(int field[][],int row){
+		if(row < 0){
+			System.out.println("row num should not be negative");
+			return null;//Exceptions?
+		}
+		
+		if(row >= field.length){
+			System.out.println("row num should not exceed the maximum");
+			return null; //Exceptions?
+		}
+		
+		if(row == field.length - 1){
+			return null;//Cause the top row will not have any holes by definition
+		}else{
+			int[] spacesAtTheRow = field[row];
+			
+			//Start counting
+			ArrayList<Integer> holes = new ArrayList<Integer>();
+			for(int colNum = 0; colNum < spacesAtTheRow.length; colNum ++){				
+				if(isHole(field,row,colNum)){
+					holes.add(colNum);
+				}
+			}
+			
+			return holes;
+		}
+	}
+	
+	private Boolean isHole(int field[][],int row,int col){
+		int pieceIndicator = field[row][col];
+		
+		//Check if the piece is occupied or not
+		if(pieceIndicator != 0){
+			return false;
+		}
+		
+		for(int r = row; r<State.ROWS; r++){
+			int upperPieceIndicator = field[r][col];
+			
+			//If one of the upper piece is occupied, then we conclude that the piece we are checking is a hole
+			if(upperPieceIndicator != 0){
+				return true;
+			}
+		}
+		
+		return false;
+		
+	}
+	
+	private boolean[] combineDependentRows(boolean dependentRow1[], boolean dependentRow2[]){		
+		boolean combinedDependentRows[] = new boolean[State.ROWS];
+		for(int r = 0; r<State.ROWS; r++){
+			combinedDependentRows[r] = dependentRow1[r] || dependentRow2[r];
+		}
+		return combinedDependentRows;
+	}
+	
+	private int getTheRowDirectlyAboveAHole(int field[][],int row,int col){
+		for(int r = row;r<State.ROWS;r++){
+			int upperPieceIndicator = field[r][col];
+			
+			//If one of the upper piece is occupied, then we conclude that the piece we are checking is a hole
+			if(upperPieceIndicator != 0){
+				return r;
+			}
+		}
+		
+		return -1; //Exceptions?
+	}
 	
 	public static void main(String[] args) {
 		State s = new State();
