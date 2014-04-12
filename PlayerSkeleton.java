@@ -379,7 +379,7 @@ public class PlayerSkeleton {
     		setDependentRowsOfARow(field,row,dependentRows);
     	}
     	int[][] results = format(dependentRows);
-    	printResults(dependentRows);
+    	printResults(results);
     	return results;
     }
 	
