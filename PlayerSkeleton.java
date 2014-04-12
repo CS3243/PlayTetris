@@ -6,17 +6,28 @@ public class PlayerSkeleton {
 	public static final double B = 0.5;
 	// A refers to the bonus cost for each existing dependent lines 
 	public static final double A = 0.5;
+	// Number of states considered when look forward
+	public static final int F = 5;
+	public static final double MAX= Double.MAX_VALUE;
+	
+	
+	public static int [][][] fullLegalMoves = State.legalMoves;
 
 	//implement this function to have a working system
-	public int pickMove(State s, int[][] legalMoves) {
-		
-		//for S.ROWS
-		
-		int bestMove = 0;
+	public int pickMove(State s, int[][] legalMoves) {	
+
+		int[][][] topFields = new int[F][State.ROWS][State.COLS];
+		int[][] topTops = new int[F][State.COLS];
+		int[] topMove = new int[F];
+		double[] topCost = new double[F];
+		for (int i = 0; i<5; i++) {
+			topCost[i] = Integer.MAX_VALUE;
+		}
 		int[][] oldField = s.getField();
 		int[] oldTop = s.getTop();
-		double bestMoveCost = Integer.MAX_VALUE;
 		
+		
+		double bestMoveCost = Integer.MAX_VALUE;
 		for (int i= 0; i< legalMoves.length; i++) {
 			
 			int[] top = new int[State.COLS];
@@ -28,51 +39,107 @@ public class PlayerSkeleton {
 			for (int j = 0; j < State.ROWS; j++)
 				for (int k = 0; k<State.COLS; k++)
 					field[j][k] = oldField[j][k];
-			
-			int rowsCleared = makeMove(s.nextPiece, legalMoves[i][State.ORIENT], legalMoves[i][State.SLOT], s, field, top);
 						
-			// cost refers to the overall cost if we make the current move
-			double cost = 0;
+			double cost = computeMoveCost(s.nextPiece, legalMoves[i][State.ORIENT], legalMoves[i][State.SLOT], field, top, s.getTurnNumber()+1);
+			cost += computeStateCost(field);
 			
-			if (rowsCleared == -1) {
-				cost = Integer.MAX_VALUE;
-			} else {
-				cost = rowsCleared * ALPHA;
-			}
 			
-			double[] costOfEachRow = new double[State.ROWS]; 
-			int[][] dependentRows = getDependendLinesSet(field);
+			int k = -1;
+			for (int j= 0; j<F; j++)
+				if (cost < topCost[j]) {
+					if (k == -1  || topCost[j]<topCost[k]) k = j;
+				}
 			
-			// Calculate the cost of each row
-			for (int j=State.ROWS-1; j>=0; j--) {
-				costOfEachRow[j] +=  B*getNumberOfHoles(field, i);
-				costOfEachRow[j] += getCostOfGap (field, i);
-				
-				for (int k = 1; k<= dependentRows[j][0]; k++)
-					costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
-				cost += costOfEachRow[j];
-				if (cost > bestMoveCost) break;
-			}
-			
-			if (cost < bestMoveCost) {
-				bestMoveCost = cost;
-				bestMove = i;
-			}
-			
+			if (! (k== -1)) {
+				//topCost[k] is the maximum cost in top best 5 that is smaller than current cost
+				topMove[k] = i;
+				topCost[k] = cost;
+				topTops[k] = top;
+				topFields[k] = field;
+			}		
 		}
+		
+		// Look Forward
+		double bestAmortizedCost = MAX;
+		int bestAmortizedMove = 0;
+		
+		for (int i = 0; i<F; i++) {
+			if (topCost[i] != Integer.MAX_VALUE) {
+				// initialize amortized cost
+				double amortizedCost = 0;
 				
-		return bestMove;
+				// Iterate over all possible pieces
+				for (int nextPiece = 0; nextPiece <State.N_PIECES; nextPiece++) {
+					// Iterate over all possible moves given that piece					
+					bestMoveCost = Integer.MAX_VALUE;
+					for (int l = 0; l <fullLegalMoves[nextPiece].length; l++ ){
+						int[] top = new int[State.COLS];
+						int[][] field = new int[State.ROWS][State.COLS];
+						
+						for (int k = 0; k<State.COLS; k++) 
+							top[k] = topTops[i][k];
+						
+						for (int j = 0; j < State.ROWS; j++)
+							for (int k = 0; k<State.COLS; k++)
+								field[j][k] = topFields[i][j][k];
+						
+						// The current turn number is S.turnNumber + 2
+						double cost = computeMoveCost(nextPiece, fullLegalMoves[nextPiece][l][State.ORIENT], fullLegalMoves[nextPiece][l][State.SLOT], field, top, s.getTurnNumber()+2);
+						cost += computeStateCost(field);
+						
+						if (cost < bestMoveCost) {
+							bestMoveCost = cost;
+						}
+					}
+					
+					amortizedCost += bestMoveCost;
+				}
+				
+				if ((amortizedCost/State.N_PIECES + topCost[i]) < bestAmortizedCost) {
+					bestAmortizedCost = (amortizedCost/State.N_PIECES + topCost[i]);
+					bestAmortizedMove= i;
+				}	
+			}
+		}
+		
+		return topMove[bestAmortizedMove];
+	}
+	
+	
+	public double computeMoveCost(int nextPiece, int orient, int slot, int[][] field, int[]top, int turn) {
+		int rowsCleared = makeMove(nextPiece, orient, slot, field, top, turn);
+		if (rowsCleared == -1) {
+			return Integer.MAX_VALUE;
+		} else {
+			return rowsCleared * ALPHA;
+		}	
+	}
+	
+	
+	public double computeStateCost(int field[][]) {
+		double[] costOfEachRow = new double[State.ROWS]; 
+		int[][] dependentRows = getDependendLinesSet(field);
+		double cost = 0;
+		
+		// Calculate the cost of each row
+		for (int j=State.ROWS-1; j>=0; j--) {
+			costOfEachRow[j] +=  B*getNumberOfHoles(field, j);
+			costOfEachRow[j] += getCostOfGap (field, j);
+			for (int k = 1; k<= dependentRows[j][0]; k++)
+				costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
+			cost += costOfEachRow[j];
+		}
+		return cost;
 	}
 	
 	
 	// The method returns number of rows cleared. If the game fails, it returns -1.
 	// The parameter field is modified;
-	public int makeMove(int nextPiece, int orient, int slot, State s1, int[][] field, int[] top) {
+	public int makeMove(int nextPiece, int orient, int slot, int[][] field, int[] top, int turn) {
 		int[][][] pBottom = State.getpBottom();
 		int[][][] pTop = State.getpTop();
 		int[][] pHeight = State.getpHeight();
 		int[][] pWidth = State.getpWidth();
-		int turn = s1.getTurnNumber()+1;
 		
 		//height if the first column makes contact
 		int height = top[slot]-pBottom[nextPiece][orient][0];
