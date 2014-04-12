@@ -372,17 +372,38 @@ public class PlayerSkeleton {
     	
     	// result[i] stores the line number of ith row's dependent lines.
     	// result[i][0] store the number of dependent lines of the ith row.
-    	int[][] result=new int[State.ROWS][1];
     	
     	//The following are calculating the upper rows' dependent rows first, in order to reduce the duplicate calculations.
     	boolean[][] dependentRows = new boolean[State.ROWS][State.ROWS];
     	for(int row = State.ROWS - 2; row<0; row--){
     		setDependentRowsOfARow(field,row,dependentRows);
     	}
-    	
-    	return result;
+    	int[][] results = format(dependentRows);
+    	return results;
     }
 	
+	private int[][] format(boolean dependentRows[][]){
+		int[][] results = new int[State.ROWS][State.ROWS];
+		int outIndex = 0;
+		for(int row =0;row < dependentRows.length; row++){
+			int count = countNumberOfDependentRows(dependentRows,row);	
+			
+			boolean[] dependentRowOfTheRow = dependentRows[row];
+			int index = 0;
+			int result[] = new int[count + 1];
+			result[0] = count;
+			for(int r=0;r<dependentRowOfTheRow.length;r++){
+				if(dependentRowOfTheRow[r]){
+					index ++;
+					result[index] = r;
+				}
+			}
+			
+			results[outIndex] = result;
+		}
+		
+		return results;
+	}
 	private int countNumberOfDependentRows(boolean dependentRows[][],int row){
 		boolean[] dependentRowsOfTheRow = dependentRows[row];
 		
