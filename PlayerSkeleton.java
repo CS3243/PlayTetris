@@ -375,13 +375,37 @@ public class PlayerSkeleton {
     	
     	//The following are calculating the upper rows' dependent rows first, in order to reduce the duplicate calculations.
     	boolean[][] dependentRows = new boolean[State.ROWS][State.ROWS];
-    	for(int row = State.ROWS - 2; row>0; row--){
+    	for(int row = State.ROWS - 2; row>=0; row--){
     		setDependentRowsOfARow(field,row,dependentRows);
     	}
     	int[][] results = format(dependentRows);
-    	System.out.println("haha called");
+    	printResults(dependentRows);
     	return results;
     }
+	
+	private void printDependentRows(boolean dependentRows[][]){
+		System.out.print("\n");
+		for(boolean[] dependentRow:dependentRows){
+			for(int i=0; i<dependentRow.length;i++){
+				System.out.print(" " + dependentRow[i]+" ");
+			}
+			System.out.print("\n");
+		}
+		System.out.print("\n");
+
+	}
+	
+	private void printResults(int results[][]){
+		System.out.print("\n");
+		for(int[] result:results){
+			for(int i=0; i<result.length;i++){
+				System.out.print(" " + result[i]+" ");
+			}
+			System.out.print("\n");
+		}
+		System.out.print("\n");
+
+	}
 	
 	private int[][] format(boolean dependentRows[][]){
 		int[][] results = new int[State.ROWS][State.ROWS];
@@ -401,6 +425,7 @@ public class PlayerSkeleton {
 			}
 			
 			results[outIndex] = result;
+			outIndex ++;
 		}
 		
 		return results;
