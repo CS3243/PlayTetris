@@ -375,10 +375,11 @@ public class PlayerSkeleton {
     	
     	//The following are calculating the upper rows' dependent rows first, in order to reduce the duplicate calculations.
     	boolean[][] dependentRows = new boolean[State.ROWS][State.ROWS];
-    	for(int row = State.ROWS - 2; row<0; row--){
+    	for(int row = State.ROWS - 2; row>0; row--){
     		setDependentRowsOfARow(field,row,dependentRows);
     	}
     	int[][] results = format(dependentRows);
+    	System.out.println("haha called");
     	return results;
     }
 	
