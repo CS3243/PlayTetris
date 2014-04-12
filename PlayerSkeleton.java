@@ -26,6 +26,7 @@ public class PlayerSkeleton {
 	
 	//Debug use
 	int turn = 0;
+//	int nextPiece = -1;
 
 	//implement this function to have a working system
 	public int pickMove(State s, int[][] legalMoves) {	
@@ -55,10 +56,12 @@ public class PlayerSkeleton {
 			for (int j = 0; j < State.ROWS; j++)
 				for (int k = 0; k<State.COLS; k++)
 					field[j][k] = oldField[j][k];
-						
-			double cost = computeMoveCost(s.nextPiece, legalMoves[i][State.ORIENT], legalMoves[i][State.SLOT], field, top, s.getTurnNumber()+1);
-			cost += computeStateCost(field,top);
 			
+//			//For debug purpose
+//		    nextPiece = s.nextPiece;
+		 	double cost = computeMoveCost(s.nextPiece, legalMoves[i][State.ORIENT], legalMoves[i][State.SLOT], field, top, s.getTurnNumber()+1);
+			
+			cost += computeStateCost(field,top);
 			
 			int k = -1;
 			for (int j= 0; j<F; j++)
@@ -384,10 +387,10 @@ public class PlayerSkeleton {
     		setDependentRowsOfARow(field,row,dependentRows);
     	}
     	int[][] results = format(dependentRows);
-    	if(turn == 3){
-        	printResults(results);
-        	System.out.println("");
-    	}
+//    	if(nextPiece == 0){
+//        	printResults(results);
+//        	System.out.println("");
+//    	}
     	return results;
     }
 	
