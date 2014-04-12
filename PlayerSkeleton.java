@@ -23,9 +23,14 @@ public class PlayerSkeleton {
 	public static final double gapCostForLongerWidth = 1;
 	
 	public static int [][][] fullLegalMoves = State.legalMoves;
+	
+	//Debug use
+	int turn = 0;
 
 	//implement this function to have a working system
 	public int pickMove(State s, int[][] legalMoves) {	
+		System.out.println("Current turn is:" + turn + "\n");
+		turn ++;
 
 		int[][][] topFields = new int[F][State.ROWS][State.COLS];
 		int[][] topTops = new int[F][State.COLS];
@@ -379,7 +384,10 @@ public class PlayerSkeleton {
     		setDependentRowsOfARow(field,row,dependentRows);
     	}
     	int[][] results = format(dependentRows);
-    	printResults(results);
+    	if(turn == 3){
+        	printResults(results);
+        	System.out.println("");
+    	}
     	return results;
     }
 	
@@ -396,13 +404,16 @@ public class PlayerSkeleton {
 	}
 	
 	private void printResults(int results[][]){
-		System.out.print("\n");
-		for(int[] result:results){
-			for(int i=0; i<result.length;i++){
-				System.out.print(" " + result[i]+" ");
+		System.out.print("\nHey, this is the dependence results with turn " + turn + ":\n");
+		for(int i=0; i<results.length;i++){
+			int[] result = results[i];
+			System.out.print("Row " +i + ": ");
+			for(int j=1; j<result.length;j++){
+				System.out.print(" " + result[j]+" ");
 			}
 			System.out.print("\n");
 		}
+
 		System.out.print("\n");
 
 	}
