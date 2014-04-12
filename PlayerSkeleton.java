@@ -9,7 +9,17 @@ public class PlayerSkeleton {
 	// Number of states considered when look forward
 	public static final int F = 5;
 	public static final double MAX= Double.MAX_VALUE;
-	
+	//Type of gap width
+	public static final int TGW = 2;
+	//Type of gap state with one gap width
+	public static final int TGS = 11;
+	// Cost of the gap [type of gap width][gap ID]
+	public static final double[][] GAPCOST = {
+	    {1.17, 1.75, 1.40, 1.75, 2.33, 1.75, 3.50, 1.75, 2.33, 14.0, 15.00},
+	    {1.75, 2.15, 1.75, 2.55, 2.80, 2.15, 2.80, 1.75, 2.15, 6.00, 15.00}
+	};
+	// Cost of gap with width larger than 2 
+	public static final double gapCostForLongerWidth = 1;
 	
 	public static int [][][] fullLegalMoves = State.legalMoves;
 
@@ -41,7 +51,7 @@ public class PlayerSkeleton {
 					field[j][k] = oldField[j][k];
 						
 			double cost = computeMoveCost(s.nextPiece, legalMoves[i][State.ORIENT], legalMoves[i][State.SLOT], field, top, s.getTurnNumber()+1);
-			cost += computeStateCost(field);
+			cost += computeStateCost(field,top);
 			
 			
 			int k = -1;
@@ -85,7 +95,7 @@ public class PlayerSkeleton {
 						
 						// The current turn number is S.turnNumber + 2
 						double cost = computeMoveCost(nextPiece, fullLegalMoves[nextPiece][l][State.ORIENT], fullLegalMoves[nextPiece][l][State.SLOT], field, top, s.getTurnNumber()+2);
-						cost += computeStateCost(field);
+						cost += computeStateCost(field,top);
 						
 						if (cost < bestMoveCost) {
 							bestMoveCost = cost;
@@ -116,7 +126,7 @@ public class PlayerSkeleton {
 	}
 	
 	
-	public double computeStateCost(int field[][]) {
+	public double computeStateCost(int[][] field, int[] top) {
 		double[] costOfEachRow = new double[State.ROWS]; 
 		int[][] dependentRows = getDependendLinesSet(field);
 		double cost = 0;
@@ -124,7 +134,7 @@ public class PlayerSkeleton {
 		// Calculate the cost of each row
 		for (int j=State.ROWS-1; j>=0; j--) {
 			costOfEachRow[j] +=  B*getNumberOfHoles(field, j);
-			costOfEachRow[j] += getCostOfGap (field, j);
+			costOfEachRow[j] += getCostOfGap (field, top, j);
 			for (int k = 1; k<= dependentRows[j][0]; k++)
 				costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
 			cost += costOfEachRow[j];
@@ -201,11 +211,130 @@ public class PlayerSkeleton {
 	
 	
 	// The function returns the sum of cost of each gap detected in a specific row
-	public double getCostOfGap(int[][] field, int row) {
+	public double getCostOfGap(int[][] field, int[] top, int row) {
 		// TO BE IMPLEMENTED
-		return 0;
+	    int costy = 2;
+	    double cost = 0;
+	    for (int c = 0; c < State.COLS; c++){
+    	    //if current cell is not a gap
+	        if (field[row][c] != 0 || top[c] - 1 > row){
+	            costy = 2;
+    	    }else{
+    	        if (c+1 == State.COLS){    //if at the last column
+    	            cost = cost + getGapCostOfCell(field, top, row, c, costy);
+    	        }else if (field[row][c+1] == 0){          //if current cell and its right neighbor is empty, continue checking without increasing the cost.
+    	            costy--;
+    	        }else{     //current is empty and has a occupied cell on its right, increase its cost
+    	            cost = cost + getGapCostOfCell(field, top, row, c, costy);    
+    	        }
+    	    }
+    	}
+		return cost;
 	}
-	
+	//The function returns the cost of gap at the particular empty cell or two cell
+	private double getGapCostOfCell(int[][] field, int[] top, int row, int col, int costy){
+	    int diff1, diff2, diff3, diff4, gapIndex;
+	    if(costy == 1){
+	        //if costy is 1, gap with width 2 
+	        //gap with width 2 cannot start from 0
+            assert(col!=0);
+            
+            //range which need to check col-3, col-2, col+1, col+2
+            if (col >= 3 && col < State.COLS - 2){
+                diff1 = top[col-3] -1 - row;
+                diff2 = top[col-2] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+                
+            }else if(col == 2){
+                diff1 = 21;
+                diff2 = top[col-2] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+                
+            }else if(col == State.COLS - 2){
+                diff1 = top[col-2] -1 - row;
+                diff2 = top[col-1] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = 21;
+                
+            }else if(col == 1){
+                diff1 = 21;
+                diff2 = 2;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+            }else{
+                diff1 = top[col-3] -1 - row;
+                diff2 = top[col-1] -1 - row;
+                diff3 = 2;
+                diff4 = 21;
+            }
+            gapIndex = getGapIndex(diff1, diff2, diff3, diff4);
+            return GAPCOST[0][gapIndex];
+	        //gap with width 1
+	    }else if (costy == 2){
+            //range which need to check col-2, col-1, col+1, col+2 
+            if (col >= 2 && col < State.COLS - 2){
+                diff1 = top[col-2] -1 - row;
+                diff2 = top[col-1] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+                
+            }else if(col == 1){
+                diff1 = 21;
+                diff2 = top[col-1] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+                
+            }else if(col == State.COLS - 2){
+                diff1 = top[col-2] -1 - row;
+                diff2 = top[col-1] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = 21;
+                
+            }else if(col == 0){
+                diff1 = 21;
+                diff2 = 2;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+            }else{
+                diff1 = top[col-2] -1 - row;
+                diff2 = top[col-1] -1 - row;
+                diff3 = 2;
+                diff4 = 21;
+            }
+            gapIndex = getGapIndex(diff1, diff2, diff3, diff4);
+            return GAPCOST[0][gapIndex];
+	    }else{
+            return gapCostForLongerWidth;
+	    }
+	}
+	private int getGapIndex(int diff1, int diff2, int diff3, int diff4){
+
+       if (diff1 == diff2 && diff3 == diff4 && diff2 == diff3 && diff1 == 0){
+           return 0;
+       }else if ((diff1 == 0 && diff2 == 0 && diff3==1)||(diff4 == 0 && diff3 == 0 && diff2 == 1)){
+           return 1;
+       }else if ((diff2 == 0 && diff3 == 0)&&(diff1 == 0 || diff4 == 0)){
+           return 2;
+       }else if ((diff1==0 && diff2 == 0 && diff3 == 2)||(diff4==0 && diff3==0 && diff2==2)){
+           return 3;
+       }else if (diff2==1 && diff3==1){
+           return 4;
+       }else if ((diff2==1 && diff3==0 && diff4 > 0)||(diff3==1 && diff2==0 && diff1 > 0)){
+           return 5;
+       }else if ((diff2==1 && diff3==2)||(diff3==1 && diff2==2)){
+           return 6;
+       }else if (diff1 > 0 && diff2 == 0 && diff3 == 0 && diff4 > 0){
+           return 7;
+       }else if ((diff1>0 && diff2 == 0 && diff3 == 2)||(diff4 > 0 && diff3 == 0 && diff2 == 2)){
+           return 8;
+       }else if (diff2 == 2 && diff3 == 2){
+           return 9;
+       }else{
+           return 10;
+       }
+	}
 	
 	// The function returns the number of holes detected in a specific row
 	public int getNumberOfHoles(int[][] field, int row) {
