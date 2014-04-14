@@ -4,9 +4,9 @@ public class PlayerSkeleton {
 	// ALPHA refers to the coefficient for rows cleared feature
 	public static final double ALPHA = 0.5;
 	// B refers to the coefficient for number of holes in each row
-	public static final double B = 0.5;
+	public static final double B = 17;
 	// A refers to the bonus cost for each existing dependent lines 
-	public static final double A = 0.5;
+	public static final double A = 1;
 	// Number of states considered when look forward
 	public static final int F = 5;
 	public static final double MAX= Double.MAX_VALUE;
@@ -30,9 +30,10 @@ public class PlayerSkeleton {
 
 	//implement this function to have a working system
 	public int pickMove(State s, int[][] legalMoves) {	
-		System.out.println("Current turn is:" + turn + "\n");
+		System.out.println("Current turn is:" + turn);
 		turn ++;
 
+        //initialization of variables
 		int[][][] topFields = new int[F][State.ROWS][State.COLS];
 		int[][] topTops = new int[F][State.COLS];
 		int[] topMove = new int[F];
@@ -43,7 +44,7 @@ public class PlayerSkeleton {
 		int[][] oldField = s.getField();
 		int[] oldTop = s.getTop();
 		
-		
+        
 		double bestMoveCost = Integer.MAX_VALUE;
 		for (int i= 0; i< legalMoves.length; i++) {
 			
@@ -59,18 +60,21 @@ public class PlayerSkeleton {
 			
 //			//For debug purpose
 //		    nextPiece = s.nextPiece;
+            //w(s)
 		 	double cost = computeMoveCost(s.nextPiece, legalMoves[i][State.ORIENT], legalMoves[i][State.SLOT], field, top, s.getTurnNumber()+1);
 			
+            //all other terms except w(s)
 			cost += computeStateCost(field,top);
 			
 			int k = -1;
 			for (int j= 0; j<F; j++)
 				if (cost < topCost[j]) {
-					if (k == -1  || topCost[j]<topCost[k]) k = j;
+                    //change "<" to ">"
+					if (k == -1  || topCost[j]>topCost[k]) k = j;
 				}
 			
 			if (! (k== -1)) {
-				//topCost[k] is the maximum cost in top best 5 that is smaller than current cost
+                //topCost[k] is the maximum cost in top best 5 that is larger than cost
 				topMove[k] = i;
 				topCost[k] = cost;
 				topTops[k] = top;
@@ -78,6 +82,7 @@ public class PlayerSkeleton {
 			}		
 		}
 		
+        
 		// Look Forward
 		double bestAmortizedCost = MAX;
 		int bestAmortizedMove = 0;
