@@ -16,8 +16,8 @@ public class PlayerSkeleton {
 	public static final int TGS = 11;
 	// Cost of the gap [type of gap width][gap ID]
 	public static final double[][] GAPCOST = {
-	    {1.17, 1.75, 1.40, 1.75, 2.33, 1.75, 3.50, 1.75, 2.33, 14.0, 15.00},
-	    {1.75, 2.15, 1.75, 2.55, 2.80, 2.15, 2.80, 1.75, 2.15, 6.00, 15.00}
+	    {1.17, 1.75, 1.40, 1.75, 2.33, 1.75, 3.50, 1.75, 2.33, 14.0, 40.00},
+	    {1.75, 2.15, 1.75, 2.55, 2.80, 2.15, 2.80, 1.75, 2.15, 6.00, 10.00}
 	};
 	// Cost of gap with width larger than 2 
 	public static final double gapCostForLongerWidth = 1;
