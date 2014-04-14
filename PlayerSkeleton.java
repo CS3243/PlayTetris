@@ -30,7 +30,7 @@ public class PlayerSkeleton {
 
 	//implement this function to have a working system
 	public int pickMove(State s, int[][] legalMoves) {	
-		System.out.println("Current turn is:" + turn);
+		//System.out.println("Current turn is:" + turn);
 		turn ++;
 
         //initialization of variables
@@ -555,23 +555,43 @@ public class PlayerSkeleton {
 		return -1; //Exceptions?
 	}
 	
-	public static void main(String[] args) {
+	public void playWithVisual(int sleepAmount) {
 		State s = new State();
 		new TFrame(s);
-		PlayerSkeleton p = new PlayerSkeleton();
 		while(!s.hasLost()) {
-			int t = p.pickMove(s,s.legalMoves());
+			int t = pickMove(s,s.legalMoves());
 			//System.out.println("I choose this step  "+t);
 			s.makeMove(t);
 			s.draw();
 			s.drawNext(0,0);
 			try {
-				Thread.sleep(300);
+				Thread.sleep(sleepAmount);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
+	}
+	
+	public void getAverageLinesCleared (int testNum) {
+		int average=0;
+		for (int i=0; i<testNum; i++) {
+			State s = new State();
+			while(!s.hasLost()) {
+				int t = pickMove(s,s.legalMoves());
+				s.makeMove(t);	
+			}
+			System.out.println(s.getRowsCleared());
+			average += s.getRowsCleared();
+		}
+		System.out.println("For "+testNum +" sessions, your average lines cleared is "+ average/testNum);
+		//return average/testNum;
+	}
+	
+	public static void main(String[] args) {
+		PlayerSkeleton p = new PlayerSkeleton();
+		//p.playWithVisual(300);
+		p.getAverageLinesCleared(10);
 	}
 	
 }
