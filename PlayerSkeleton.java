@@ -16,8 +16,8 @@ public class PlayerSkeleton {
 	public static final int TGS = 11;
 	// Cost of the gap [type of gap width][gap ID]
 	public static final double[][] GAPCOST = {
-	    {1.17, 1.75, 1.40, 1.75, 2.33, 1.75, 3.50, 1.75, 2.33, 14.0, 40.00},
-	    {1.75, 2.15, 1.75, 2.55, 2.80, 2.15, 2.80, 1.75, 2.15, 6.00, 10.00}
+	    {1.17, 1.75, 1.40, 1.75, 2.33, 1.75, 3.50, 1.75, 2.33, 14.0, 50.00, 40.0},
+	    {1.75, 2.15, 1.75, 2.55, 2.80, 2.15, 2.80, 1.75, 2.15, 6.00, 35.00, 10.0}
 	};
 	// Cost of gap with width larger than 2 
 	public static final double gapCostForLongerWidth = 1;
@@ -227,19 +227,19 @@ public class PlayerSkeleton {
 	// The function returns the sum of cost of each gap detected in a specific row
 	public double getCostOfGap(int[][] field, int[] top, int row) {
 		// TO BE IMPLEMENTED
-	    int costy = 2;
+	    int gap = 3;
 	    double cost = 0;
 	    for (int c = 0; c < State.COLS; c++){
     	    //if current cell is not a gap
 	        if (field[row][c] != 0 || top[c] - 1 > row){
-	            costy = 2;
+	            gap = 2;
     	    }else{
     	        if (c+1 == State.COLS){    //if at the last column
-    	            cost = cost + getGapCostOfCell(field, top, row, c, costy);
+    	            cost = cost + getGapCostOfCell(field, top, row, c, gap);
     	        }else if (field[row][c+1] == 0){          //if current cell and its right neighbor is empty, continue checking without increasing the cost.
-    	            costy--;
+    	            gap--;
     	        }else{     //current is empty and has a occupied cell on its right, increase its cost
-    	            cost = cost + getGapCostOfCell(field, top, row, c, costy);    
+    	            cost = cost + getGapCostOfCell(field, top, row, c, gap);
     	        }
     	    }
     	}
@@ -248,7 +248,7 @@ public class PlayerSkeleton {
 	//The function returns the cost of gap at the particular empty cell or two cell
 	private double getGapCostOfCell(int[][] field, int[] top, int row, int col, int costy){
 	    int diff1, diff2, diff3, diff4, gapIndex;
-	    if(costy == 1){
+	    if(costy == 2){
 	        //if costy is 1, gap with width 2 
 	        //gap with width 2 cannot start from 0
             assert(col!=0);
@@ -286,7 +286,7 @@ public class PlayerSkeleton {
             gapIndex = getGapIndex(diff1, diff2, diff3, diff4);
             return GAPCOST[0][gapIndex];
 	        //gap with width 1
-	    }else if (costy == 2){
+	    }else if (costy == 3){
             //range which need to check col-2, col-1, col+1, col+2 
             if (col >= 2 && col < State.COLS - 2){
                 diff1 = top[col-2] -1 - row;
@@ -307,6 +307,39 @@ public class PlayerSkeleton {
                 diff4 = 21;
                 
             }else if(col == 0){
+                diff1 = 21;
+                diff2 = 2;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+            }else{
+                diff1 = top[col-2] -1 - row;
+                diff2 = top[col-1] -1 - row;
+                diff3 = 2;
+                diff4 = 21;
+            }
+            gapIndex = getGapIndex(diff1, diff2, diff3, diff4);
+            return GAPCOST[0][gapIndex];
+	    }else if (costy == 0){
+	      //range which need to check col-4, col-3, col+1, col+2 
+            if (col >= 4 && col < State.COLS - 2){
+                diff1 = top[col-4] -1 - row;
+                diff2 = top[col-3] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+                
+            }else if(col == 3){
+                diff1 = 21;
+                diff2 = top[col-3] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = top[col+2] -1 - row;
+                
+            }else if(col == State.COLS - 2){
+                diff1 = top[col-4] -1 - row;
+                diff2 = top[col-3] -1 - row;
+                diff3 = top[col+1] -1 - row;
+                diff4 = 21;
+                
+            }else if(col == 2){
                 diff1 = 21;
                 diff2 = 2;
                 diff3 = top[col+1] -1 - row;
@@ -345,8 +378,11 @@ public class PlayerSkeleton {
            return 8;
        }else if (diff2 == 2 && diff3 == 2){
            return 9;
-       }else{
+           //deep well and gap
+       }else if (diff2 > 2 && diff3 > 2){
            return 10;
+       }else{
+           return 11;
        }
 	}
 	
