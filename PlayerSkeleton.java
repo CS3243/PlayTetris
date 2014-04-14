@@ -129,7 +129,6 @@ public class PlayerSkeleton {
 		return topMove[bestAmortizedMove];
 	}
 	
-	
 	public double computeMoveCost(int nextPiece, int orient, int slot, int[][] field, int[]top, int turn) {
 		int rowsCleared = makeMove(nextPiece, orient, slot, field, top, turn);
 		if (rowsCleared == -1) {
@@ -156,7 +155,7 @@ public class PlayerSkeleton {
 		return cost;
 	}
 	
-	
+    
 	// The method returns number of rows cleared. If the game fails, it returns -1.
 	// The parameter field is modified;
 	public int makeMove(int nextPiece, int orient, int slot, int[][] field, int[] top, int turn) {
@@ -602,7 +601,7 @@ public class PlayerSkeleton {
 			s.draw();
 			s.drawNext(0,0);
 			try {
-				Thread.sleep(300);
+				Thread.sleep(50);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
