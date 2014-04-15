@@ -7,7 +7,7 @@ public class PlayerSkeleton {
 	// B refers to the coefficient for number of holes in each row
 	public static final double B = 30;
 	// A refers to the bonus cost for each existing dependent lines 
-	public static double A = 1;
+	public static double A = 0.5;
 	// Number of states considered when look forward
 	public static final int F = 5;
 	public static final double MAX= Double.MAX_VALUE;
@@ -174,8 +174,9 @@ public class PlayerSkeleton {
 	//		 System.out.println("cost of gap: "+cost2);
             
             //Possible bug
-           // for (int k = 1; k<= dependentRows[j][0]; k++)
-			//	costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
+
+            for (int k = 1; k<= dependentRows[j][0]; k++)
+				costOfEachRow[j] += 0.0001 * costOfEachRow[dependentRows[j][k]] + A;
 //            
 //            System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
 //            System.out.println("sum: "+costOfEachRow[j]);
@@ -186,13 +187,13 @@ public class PlayerSkeleton {
 		}
         
         //add panelty for deep well and multiple well
-//        double costOfWell = 0;
-//        for(int i =1;i<3;i++){
-//            costOfWell+=getCostOfWell(i,field,top);
-//        }
+        double costOfWell = 0;
+        for(int i =1;i<3;i++){
+            costOfWell+=getCostOfWell(i,field,top);
+        }
 //        
 //
-//        cost+=costOfWell;
+        cost+= 0.1 * costOfWell;
 
        // cost+=getCostOfWell(1,field,top);
 		return cost;
@@ -303,11 +304,11 @@ public class PlayerSkeleton {
 	private int getNumofBlocksAbove(int[][] field, int[] top, int row, int col){
 	    int numOfBlocks = 0;
 	    
-	    for (int i = row+1; i < top[col]; i++){
-	        if (field[i][col] != 0){
-	            numOfBlocks++;
-	        }
-	    }
+//	    for (int i = row+1; i < top[col]; i++){
+//	        if (field[i][col] != 0){
+//	            numOfBlocks++;
+//	        }
+//	    }
 	    return numOfBlocks;
 	}
 	private int max(int a, int b){
@@ -338,6 +339,7 @@ public class PlayerSkeleton {
             }else{
                 //every one will be remembered.
                 numOfBlocksAbove[c] = getNumofBlocksAbove(field, top, row, c);
+                //System.out.println("NumofBlocksAbove" + numOfBlocksAbove[c] );
                 width+=1;
             }
             //if it is the left most col or its left col is not empty. remember its width
@@ -726,7 +728,7 @@ public class PlayerSkeleton {
 			s.draw();
 			s.drawNext(0,0);
 			try {
-				Thread.sleep(sleepAmount);
+				Thread.sleep(sleepAmount/100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -752,12 +754,15 @@ public class PlayerSkeleton {
 	}
 	
 	public static void main(String[] args) {
+
 		PlayerSkeleton p = new PlayerSkeleton();
-		p.playWithVisual(50);
-		//p.getAverageLinesCleared(10);
-		//p.playWithSpaceKey();
+//<<<<<<< HEAD
+		//p.playWithVisual(50);
+//		p.getAverageLinesCleared(10);
+//		p.playWithSpaceKey();
 		//p.playWithVisual(300);
 		//p.getAverageLinesCleared(50);
+		p.playWithVisual(1);
         
 //        int max = 0;
 //		double maxA = 0, maxAlpha = 0;
