@@ -786,6 +786,21 @@ public class PlayerSkeleton {
 		return -1; //Exceptions?
 	}
 	
+	public void playWithSpaceKey() {
+		State s = new State();
+		new TFrame(s);
+		while(!s.hasLost()) {
+			if (s.spacePressed) {
+				int t = pickMove(s,s.legalMoves());
+				s.makeMove(t);
+				s.draw();
+				s.drawNext(0,0);
+				s.spacePressed = false;
+			}
+		}
+		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
+	}
+	
 	public void playWithVisual(int sleepAmount) {
 		State s = new State();
 		new TFrame(s);
@@ -823,8 +838,9 @@ public class PlayerSkeleton {
 	
 	public static void main(String[] args) {
 		PlayerSkeleton p = new PlayerSkeleton();
-//		p.playWithVisual(100);
-		p.getAverageLinesCleared(50);
+		p.playWithSpaceKey();
+		//p.playWithVisual(300);
+		//p.getAverageLinesCleared(50);
         
 //        int max = 0;
 //		double maxA = 0, maxAlpha = 0;

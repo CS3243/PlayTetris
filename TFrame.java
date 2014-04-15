@@ -101,6 +101,9 @@ public class TFrame extends JFrame implements KeyListener{
 						s.drawNext(slot, orient);
 						break;
 					}
+					case(KeyEvent.VK_SPACE): {
+						s.spacePressed = true;
+					}
 					default:
 						break;
 				}
