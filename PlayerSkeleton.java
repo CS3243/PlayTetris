@@ -167,10 +167,15 @@ public class PlayerSkeleton {
 		double[] costOfEachRow = new double[State.ROWS]; 
 		int[][] dependentRows = getDependendLinesSet(field);
 		double cost = 0;
+		int highestRow = 0;
 		
 		// Calculate the cost of each row
-		//TODO: shall we start from the top most row instead of the entire rows?
-		for (int j=State.ROWS-1; j>=0; j--) {
+		for (int j = 0; j<State.COLS; j++) {
+			if (top[j] > highestRow) highestRow = top[j];
+		}
+		
+		
+		for (int j=highestRow; j>=0; j--) {
       //      System.out.println("row: "+j);
             double cost1 = B*getNumberOfHoles(field, j);
 			costOfEachRow[j] +=  cost1;
@@ -182,15 +187,23 @@ public class PlayerSkeleton {
             
             //Possible bug
 
-            for (int k = 1; k<= dependentRows[j][0]; k++)
-				costOfEachRow[j] += 0.0001 * costOfEachRow[dependentRows[j][k]] + A;
-//            
+//            for (int k = 1; k<= dependentRows[j][0]; k++)
+//				costOfEachRow[j] += 0.0001 * costOfEachRow[dependentRows[j][k]] + A;       
 //            System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
 //            System.out.println("sum: "+costOfEachRow[j]);
             
-			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j]));
+	//		double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j]));
        //      System.out.println("cost: "+ costOfEachRow[j] +", enhancedCost: " + enhancedCost);
-            cost += enhancedCost;
+      //      cost += enhancedCost;
+		}
+		
+		for (int j = highestRow; j>=0; j--) {
+			double dependentLinesCost = 0;
+			for (int k = 1; k<= dependentRows[j][0]; k++)
+				dependentLinesCost += costOfEachRow[dependentRows[j][k]];
+			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j] + dependentLinesCost));
+		       //      System.out.println("cost: "+ costOfEachRow[j] +", enhancedCost: " + enhancedCost);
+		    cost += enhancedCost;
 		}
         
         //add panelty for deep well and multiple well
