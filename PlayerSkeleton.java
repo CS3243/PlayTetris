@@ -1,11 +1,12 @@
 import java.util.ArrayList;
 import java.lang.Math;
 
+
 public class PlayerSkeleton {
 	// ALPHA refers to the coefficient for rows cleared feature
 	public static  double ALPHA = -10;
 	// B refers to the coefficient for number of holes in each row
-	public static final double B = 30;
+	public static final double B = 17;
 	// A refers to the bonus cost for each existing dependent lines 
 	public static double A = 0.5;
 	// Number of states considered when look forward
@@ -176,7 +177,7 @@ public class PlayerSkeleton {
             //Possible bug
 
             for (int k = 1; k<= dependentRows[j][0]; k++)
-				costOfEachRow[j] += 0.0001 * costOfEachRow[dependentRows[j][k]] + A;
+				costOfEachRow[j] += 0.001 * costOfEachRow[dependentRows[j][k]] + A;
 //            
 //            System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
 //            System.out.println("sum: "+costOfEachRow[j]);
@@ -188,19 +189,20 @@ public class PlayerSkeleton {
         
         //add panelty for deep well and multiple well
         double costOfWell = 0;
-        for(int i =1;i<3;i++){
-            costOfWell+=getCostOfWell(i,field,top);
-        }
-//        
-//
+//        for(int i =1;i<2;i++){
+//            costOfWell+=getCostOfWell(i,field,top);
+//        }
+        //cost of wells
+        //cost+= (getCostOfWellTop(1,field,top)+getCostOfWell(field, top))*0.1;
+        cost+= (getCostOfWell(field, top))*0.1;
         cost+= 0.1 * costOfWell;
 
-       // cost+=getCostOfWell(1,field,top);
+      
 		return cost;
 	}
     
     
-    public double getCostOfWell(int width, int[][] field, int[] top) {
+    public double getCostOfWellTop(int width, int[][] field, int[] top) {
 		double cost = 0, unit = 5;
 		for (int i = 0; i<State.COLS-width+1; i++) {
 			boolean isWell = true;
@@ -231,7 +233,49 @@ public class PlayerSkeleton {
 		}
 		return cost;
 	}
-
+	public double getCostOfWell(int[][] field, int[] top){
+	    double costOfWell = 0;
+	    
+	    for(int c=0; c < State.COLS; c++){
+	        //check width under top[c]
+	        for(int r=0; r<top[c]; r++){
+	            
+	            int heightOfWell = 0;
+	            if (field[r][c] == 0){
+	                heightOfWell++;
+	                if (heightOfWell > 3){
+	                    costOfWell = costOfWell + heightOfWell*(r-heightOfWell)*0.001;
+	                }
+	            }else{
+	                heightOfWell = 0;
+	            }
+	        }
+	        int diff1=0;
+	        int diff2=0;
+	        int diff=0;
+	        //check well on top of top[c]
+	        //leftmost
+	        if (c==0){
+	            diff1=21-top[c];
+	            diff2=top[c+1]-top[c];
+	            
+	
+	        }else if(c==State.COLS-1){  //right most
+	            diff1=top[c-1]-top[c];
+                diff2=21-top[c];
+	        }else{
+	            diff1=top[c-1]-top[c]; 
+	            diff2=top[c+1]-top[c];
+	        }
+	        diff = max(diff1,diff2);
+	        if (diff >= 3){
+	            //costOfWell = costOfWell + diff*(top[c]-1)*0.1;
+	            costOfWell = costOfWell + 5;
+	        }
+	    }
+	    
+	    return costOfWell;
+	}
 	
     
 	// The method returns number of rows cleared. If the game fails, it returns -1.
@@ -304,15 +348,19 @@ public class PlayerSkeleton {
 	private int getNumofBlocksAbove(int[][] field, int[] top, int row, int col){
 	    int numOfBlocks = 0;
 	    
-//	    for (int i = row+1; i < top[col]; i++){
-//	        if (field[i][col] != 0){
-//	            numOfBlocks++;
-//	        }
-//	    }
+	    for (int i = row+1; i < top[col]; i++){
+	        
+	        if (field[i][col] != 0){
+	            return top[col] - i;
+	        }
+	    }
 	    return numOfBlocks;
 	}
 	private int max(int a, int b){
 	    return a>b? a:b;
+	}
+	private int min(int a, int b){
+	    return a<b? a:b;
 	}
 	// The function returns the sum of cost of each gap detected in a specific row	
     public double getCostOfGap(int[][] field, int[] top, int row) {
