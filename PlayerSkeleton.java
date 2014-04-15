@@ -174,8 +174,8 @@ public class PlayerSkeleton {
 	//		 System.out.println("cost of gap: "+cost2);
             
             //Possible bug
-            for (int k = 1; k<= dependentRows[j][0]; k++)
-				costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
+           // for (int k = 1; k<= dependentRows[j][0]; k++)
+			//	costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
 //            
 //            System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
 //            System.out.println("sum: "+costOfEachRow[j]);
@@ -299,52 +299,46 @@ public class PlayerSkeleton {
 		return rowsCleared;
 	}
 	
-	
-	// The function returns the sum of cost of each gap detected in a specific row
-//	public double getCostOfGap(int[][] field, int[] top, int row) {
-//		// TO BE IMPLEMENTED
-//	    int gap = 3;
-//	    double cost = 0;
-//	    for (int c = 0; c < State.COLS; c++){
-//    	    //if current cell is not a gap
-//	        if (field[row][c] != 0 || top[c] - 1 > row){
-//	            gap = 3;
-//    	    }else{
-//    	        if (c+1 == State.COLS){    //if at the last column
-//    	            cost = cost + getGapCostOfCell(field, top, row, c, gap);
-//    	        }else if (field[row][c+1] == 0){          //if current cell and its right neighbor is empty, continue checking without increasing the cost.
-//    	            gap--;
-//    	        }else{     //current is empty and has a occupied cell on its right, increase its cost
-//    	            cost = cost + getGapCostOfCell(field, top, row, c, gap);
-//    	        }
-//    	    }
-//    	}
-//		return cost;
-//	}
-
-	
+	//condition: the [row,col] is empty. thus, top[col]-1 > row.
+	private int getNumofBlocksAbove(int[][] field, int[] top, int row, int col){
+	    int numOfBlocks = 0;
+	    
+	    for (int i = row+1; i < top[col]; i++){
+	        if (field[i][col] != 0){
+	            numOfBlocks++;
+	        }
+	    }
+	    return numOfBlocks;
+	}
+	private int max(int a, int b){
+	    return a>b? a:b;
+	}
+	// The function returns the sum of cost of each gap detected in a specific row	
     public double getCostOfGap(int[][] field, int[] top, int row) {
 		// TO BE IMPLEMENTED
-	    boolean[] possibleGaps = new boolean[State.COLS];
+	    //boolean[] possibleGaps = new boolean[State.COLS];
         int[] gapWidth = new int[State.COLS];
+        int[] numOfBlocksAbove = new int[State.COLS];
         double cost = 0;
         
-        //If it is not empty or something above it, it is not a gap.
-	    for (int c = 0; c < State.COLS; c++){
-	        if (field[row][c] != 0 || top[c] - 1 > row){
-	            possibleGaps[c] = false;
-            }else{
-                possibleGaps[c] = true;
-            }
-        }
+//        //If it is not empty or something above it, it is not a gap.
+//	    for (int c = 0; c < State.COLS; c++){
+//	        if (field[row][c] != 0 || top[c] - 1 > row){
+//	            possibleGaps[c] = false;
+//            }else{
+//                possibleGaps[c] = true;
+//            }
+//        }
         
         int width = 0;
        // System.out.print("gap width: ");
         for(int c =State.COLS-1;c>=0;c--){
-            if(possibleGaps[c]){
-                width+=1;
-            }else{
+            if(field[row][c] != 0){
                 width=0;
+            }else{
+                //every one will be remembered.
+                numOfBlocksAbove[c] = getNumofBlocksAbove(field, top, row, c);
+                width+=1;
             }
             //if it is the left most col or its left col is not empty. remember its width
             if (c == 0 || field[row][c-1]!=0){
@@ -360,7 +354,11 @@ public class PlayerSkeleton {
             //gap with width 1 and 2
             if(gapWidth[col]>0 && gapWidth[col]<3){
                 //System.out.println("!"+gapWidth[col]);
-                cost+=getGapCostOfCell(field, top, row, col, gapWidth[col]);
+                if(gapWidth[col]==1){
+                    cost+=getGapCostOfCell(field, top, row, col, gapWidth[col],numOfBlocksAbove[col]);
+                }else{
+                    cost+=getGapCostOfCell(field, top, row, col, gapWidth[col],max(numOfBlocksAbove[col],numOfBlocksAbove[col+1]));
+                }
                 col+=gapWidth[col];
             }else if(gapWidth[col] >= 3){
                 cost+=gapCostForLongerWidth;
@@ -373,7 +371,7 @@ public class PlayerSkeleton {
     }
     
     //The function returns the cost of gap at the particular empty cell or two cell
-    private double getGapCostOfCell(int[][] field, int[] top, int row, int col, int width){
+    private double getGapCostOfCell(int[][] field, int[] top, int row, int col, int width, int numOfBlocksAbove){
         int gapType;
         
         int[] difference = new int[4];
@@ -381,17 +379,18 @@ public class PlayerSkeleton {
         for(int increment=-2;increment<2;increment++){
             if(((col+increment)>=0)&&((col+increment+width)<State.COLS)){
                 if(increment<0){
-                    difference[increment+2]= top[col+increment]-row;
+                    difference[increment+2]= top[col+increment]-row-numOfBlocksAbove;
                 }
                 else{
-                    difference[increment+2]= top[col+increment+width]-row;
+                    difference[increment+2]= top[col+increment+width]-row - numOfBlocksAbove;
                 }
             }else{
+              //deal with the wall
                 if (col==0){
                     if (increment == -2){
                         difference[increment+2] = State.ROWS; 
                     }else if(increment == -1){
-                        difference[increment+2] = 2;
+                        difference[increment+2] = State.ROWS - numOfBlocksAbove;
                     }
                 }else if (col == 1){
                     if (increment == -2){
@@ -401,24 +400,19 @@ public class PlayerSkeleton {
                     if (increment == 1){
                         difference[increment+2] = State.ROWS; 
                     }else if(increment == 0){
-                        difference[increment+2] = 2;
+                        difference[increment+2] = State.ROWS - numOfBlocksAbove;
                     }
                 }else{
                     if (increment == 2){
                         difference[increment+2] = State.ROWS; 
                     }
                 }
-                
-                    
-                //how to deal with the wall
-                //can be modify corresponds to gap detection
-               
             }
         }
         
         gapType = getGapIndex(difference[0],difference[1],difference[2],difference[3]);
         
-    //   System.out.println("width: "+ (width-1)+", type: "+gapType);
+        //System.out.println("width: "+ (width-1)+", type: "+gapType);
         //return gapType*LEARNEDGAPCOST[width-1][gapType];
         return LEARNEDGAPCOST[width-1][gapType];
     }
@@ -471,9 +465,6 @@ public class PlayerSkeleton {
 //          return 10;
 //        }
 //	}
-    
-    
-
 
 	private int getGapIndex(int diff1, int diff2, int diff3, int diff4){
 
@@ -762,14 +753,11 @@ public class PlayerSkeleton {
 	
 	public static void main(String[] args) {
 		PlayerSkeleton p = new PlayerSkeleton();
-<<<<<<< HEAD
-		//p.playWithVisual(50);
-		p.getAverageLinesCleared(10);
-=======
-		p.playWithSpaceKey();
+		p.playWithVisual(50);
+		//p.getAverageLinesCleared(10);
+		//p.playWithSpaceKey();
 		//p.playWithVisual(300);
 		//p.getAverageLinesCleared(50);
->>>>>>> 2b5d46e95affecf6f0990ef1d29db41e76c7ab95
         
 //        int max = 0;
 //		double maxA = 0, maxAlpha = 0;
