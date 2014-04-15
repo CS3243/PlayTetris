@@ -3,9 +3,8 @@ import java.lang.Math;
 
 public class PlayerSkeleton {
 	// ALPHA refers to the coefficient for rows cleared feature
-	public static  double ALPHA = -10;
-	// B refers to the coefficient for number of holes in each row
-	public static final double B = 30;
+	public static  double ALPHA = -1.3;	// B refers to the coefficient for number of holes in each row
+	public static  double B = 50;
 	// A refers to the bonus cost for each existing dependent lines 
 	//public static double A = 0.5;
 	// Number of states considered when look forward
@@ -81,8 +80,8 @@ public class PlayerSkeleton {
 //                mincostMove = i;
 //            }
 			
-//                    return mincostMove;
-            
+     
+        
 			int k = -1;
 			for (int j= 0; j<F; j++)
 				if (cost < topCost[j]) {
@@ -99,6 +98,7 @@ public class PlayerSkeleton {
 			}		
 		}
 		
+//                   return mincostMove;
 		// Look Forward
 		double bestAmortizedCost = MAX;
 		int bestAmortizedMove = 0;
@@ -350,13 +350,17 @@ public class PlayerSkeleton {
       //  System.out.println();
         int col=0;
         while(col<State.COLS){
-            if(gapWidth[col]>0&&gapWidth[col]<3){
+            if(gapWidth[col]>0){
              //   System.out.println("!"+gapWidth[col]);
+                if(gapWidth[col]<3){
                 cost+=getGapCostOfCell(field, top, row, col, gapWidth[col]);
+                }
                 col+=gapWidth[col];
             }else{
                 col++;
             }
+        
+        
         }
         return cost;
     }
@@ -386,7 +390,7 @@ public class PlayerSkeleton {
         gapType = getGapIndex(difference[0],difference[1],difference[2],difference[3]);
         
     //   System.out.println("width: "+ (width-1)+", type: "+gapType);
-        return gapType*LEARNEDGAPCOST[width-1][gapType];
+        return LEARNEDGAPCOST[width-1][gapType];
     }
  
     private int getGapIndex(int diff1, int diff2, int diff3, int diff4){
@@ -804,7 +808,7 @@ public class PlayerSkeleton {
 		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
 	}
 	
-	public void getAverageLinesCleared (int testNum) {
+	public int getAverageLinesCleared (int testNum) {
 		int average=0;
 		for (int i=0; i<testNum; i++) {
 			State s = new State();
@@ -816,32 +820,39 @@ public class PlayerSkeleton {
 			average += s.getRowsCleared();
 		}
         
-		System.out.println("For "+testNum +" sessions, your average lines cleared is "+ average/testNum);
-		  // return average/testNum;
-        //return average/testNum;
+		System.out.println("when B = " +B +" and alpha = "+ALPHA +", your average lines cleared is "+ average/testNum);
+        return average/testNum;
 	}
 	
 	public static void main(String[] args) {
 		PlayerSkeleton p = new PlayerSkeleton();
-//		p.playWithVisual(100);
-		p.getAverageLinesCleared(50);
+		p.playWithVisual(50);
+//		p.getAverageLinesCleared(50);
         
 //        int max = 0;
-//		double maxA = 0, maxAlpha = 0;
-//		for (double a=1; a<=10; a++) {
-//			A=a;
-//			for (double alpha = -5; alpha <=5; alpha++ ) {
-//				ALPHA = alpha;
-//				int current = p.getAverageLinesCleared(10);
-//				if (current>max) {
-//					max = current;
-//					maxA = a;
-//					maxAlpha = alpha;
-//				}
-//			}
-//		}
-//		System.out.println("a = " + maxA + "  maxAlpha = "+maxAlpha);
-        
+//        double maxAlpha = 0;
+//        
+//        for (double alpha = -14; alpha <-12; alpha+=0.1) {
+//            ALPHA = alpha;
+//            int current = p.getAverageLinesCleared(50);
+//            if (current>max) {
+//                max = current;
+//                maxAlpha = alpha;
+//            }
+//        }
+//        
+//        for (double alpha = -2; alpha <0; alpha+=0.1) {
+//            if(alpha!=0){
+//                ALPHA = alpha;
+//                int current = p.getAverageLinesCleared(50);
+//                if (current>max) {
+//                    max = current;
+//                    maxAlpha = alpha;
+//                }
+//            }
+//        }
+//		System.out.println("  maxAlpha = "+maxAlpha);
+    
 	}
 	
 }
