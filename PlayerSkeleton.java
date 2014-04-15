@@ -3,11 +3,11 @@ import java.lang.Math;
 
 public class PlayerSkeleton {
 	// ALPHA refers to the coefficient for rows cleared feature
-	public static final double ALPHA = 0.3;
+	public static  double ALPHA = -10;
 	// B refers to the coefficient for number of holes in each row
-	public static final double B = 17;
+	public static final double B = 30;
 	// A refers to the bonus cost for each existing dependent lines 
-	public static final double A = 1;
+	//public static double A = 0.5;
 	// Number of states considered when look forward
 	public static final int F = 5;
 	public static final double MAX= Double.MAX_VALUE;
@@ -22,8 +22,8 @@ public class PlayerSkeleton {
 	};
     
     public static final double[][] LEARNEDGAPCOST = {
-    {1.55, 2.01, 1.34, 2.55, 2.69, 2.01, 4.38, 1.55, 2.57, 15,0},
-    {1.63, 2.15, 1.31, 1.79, 2.72, 2.74, 2.18, 1.77, 2.09, 5.48,0}
+    {1.55, 2.01, 1.34, 2.55, 2.69, 2.01, 4.38, 1.55, 2.57, 15,  0},
+    {1.63, 2.15, 1.31, 1.79, 2.72, 2.74, 2.18, 1.77, 2.09, 5.26,0}
 	};
 
 	// Cost of gap with width larger than 2 
@@ -51,7 +51,8 @@ public class PlayerSkeleton {
 		int[][] oldField = s.getField();
 		int[] oldTop = s.getTop();
 		
-        
+        double minCost = MAX;
+        int mincostMove =0;
 		double bestMoveCost = Integer.MAX_VALUE;
 		for (int i= 0; i< legalMoves.length; i++) {
 			
@@ -69,10 +70,19 @@ public class PlayerSkeleton {
 //		    nextPiece = s.nextPiece;
             //w(s)
 		 	double cost = computeMoveCost(s.nextPiece, legalMoves[i][State.ORIENT], legalMoves[i][State.SLOT], field, top, s.getTurnNumber()+1);
+   //         System.out.println("~~~~~~~~~~~~~~~w(s) = " +cost);
 			
             //all other terms except w(s)
 			cost += computeStateCost(field,top);
+//            System.out.println("~~~~~~~~~~~~~~~cost = "+cost+"\n");
+            
+//            if (cost < minCost) {
+//                minCost = cost;
+//                mincostMove = i;
+//            }
 			
+//                    return mincostMove;
+            
 			int k = -1;
 			for (int j= 0; j<F; j++)
 				if (cost < topCost[j]) {
@@ -89,7 +99,6 @@ public class PlayerSkeleton {
 			}		
 		}
 		
-        
 		// Look Forward
 		double bestAmortizedCost = MAX;
 		int bestAmortizedMove = 0;
@@ -138,7 +147,8 @@ public class PlayerSkeleton {
 	
 	public double computeMoveCost(int nextPiece, int orient, int slot, int[][] field, int[]top, int turn) {
 		int rowsCleared = makeMove(nextPiece, orient, slot, field, top, turn);
-		if (rowsCleared == -1) {
+	      //   System.out.println("rows cleared: "+rowsCleared);
+        if (rowsCleared == -1) {
 			return Integer.MAX_VALUE;
 		} else {
 			return rowsCleared * ALPHA;
@@ -153,10 +163,21 @@ public class PlayerSkeleton {
 		
 		// Calculate the cost of each row
 		for (int j=State.ROWS-1; j>=0; j--) {
-			costOfEachRow[j] +=  B*getNumberOfHoles(field, j);
-			costOfEachRow[j] += getCostOfGap (field, top, j);
-			for (int k = 1; k<= dependentRows[j][0]; k++)
-				costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
+      //      System.out.println("row: "+j);
+            double cost1 = B*getNumberOfHoles(field, j);
+			costOfEachRow[j] +=  cost1;
+     //       System.out.println("cost of holes: "+cost1);
+            
+            double cost2 =getCostOfGap (field, top, j);
+			costOfEachRow[j] += cost2;
+	//		 System.out.println("cost of gap: "+cost2);
+            
+            //Possible bug
+//            for (int k = 1; k<= dependentRows[j][0]; k++)
+//				costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
+//            
+//            System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
+//            System.out.println("sum: "+costOfEachRow[j]);
             
 			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j]));
        //      System.out.println("cost: "+ costOfEachRow[j] +", enhancedCost: " + enhancedCost);
@@ -165,14 +186,14 @@ public class PlayerSkeleton {
         
         //add panelty for deep well and multiple well
 //        double costOfWell = 0;
-//        for(int i =1;i<4;i++){
+//        for(int i =1;i<3;i++){
 //            costOfWell+=getCostOfWell(i,field,top);
 //        }
 //        
 //
 //        cost+=costOfWell;
 
-       // cost+=getCostOfWell(3,field,top);
+       // cost+=getCostOfWell(1,field,top);
 		return cost;
 	}
     
@@ -306,6 +327,7 @@ public class PlayerSkeleton {
 	    boolean[] possibleGaps = new boolean[State.COLS];
         int[] gapWidth = new int[State.COLS];
         double cost = 0;
+        
 	    for (int c = 0; c < State.COLS; c++){
 	        if (field[row][c] != 0 || top[c] - 1 > row){
 	            possibleGaps[c] = false;
@@ -313,15 +335,19 @@ public class PlayerSkeleton {
                 possibleGaps[c] = true;
             }
         }
+        
         int width = 0;
+       // System.out.print("gap width: ");
         for(int c =State.COLS-1;c>=0;c--){
             if(possibleGaps[c]){
                 width+=1;
             }else{
-                width = 0;
+                width=0;
             }
             gapWidth[c] = width;
+      //      System.out.print(width+" ,");
         }
+      //  System.out.println();
         int col=0;
         while(col<State.COLS){
             if(gapWidth[col]>0&&gapWidth[col]<3){
@@ -359,13 +385,34 @@ public class PlayerSkeleton {
         
         gapType = getGapIndex(difference[0],difference[1],difference[2],difference[3]);
         
-   //     System.out.println("width: "+ (width-1)+", "+gapType);
+    //   System.out.println("width: "+ (width-1)+", type: "+gapType);
         return gapType*LEARNEDGAPCOST[width-1][gapType];
     }
-    
+ 
     private int getGapIndex(int diff1, int diff2, int diff3, int diff4){
         
-        if (diff2 ==3 && diff3 == 3){
+        
+//        if(diff2>3 && diff3>3){
+//        
+//            switch(Math.max(diff2,diff3)){
+//                case 4:
+//                    return 10;
+//                case 5:
+//                    return 11;
+//                case 6:
+//                    return 12;
+//                case 7:
+//                    return 13;
+//                case 8:
+//                    return 14;
+//                default:
+//                    return 15;
+//            }
+//        
+//        
+//        }
+//        else
+            if (diff2 >=3 && diff3>= 3){
             return 9;
         }else if ((diff1==2 && diff2 <=1 && diff3 == 3)||(diff2 ==3 && diff3 ==1 && diff4==2)){
             return 3;
@@ -386,7 +433,7 @@ public class PlayerSkeleton {
         }else if ((diff2 ==2 && diff3 == 3)||(diff2 ==3 && diff3 ==2)){
             return 6;
         }else {
-            System.out.println("difference: "+diff1+", "+diff2+", "+diff3+", "+diff4);
+           // System.out.println("difference: "+diff1+", "+diff2+", "+diff3+", "+diff4);
           return 10;
         }
 	}
@@ -768,14 +815,33 @@ public class PlayerSkeleton {
 			System.out.println(s.getRowsCleared());
 			average += s.getRowsCleared();
 		}
+        
 		System.out.println("For "+testNum +" sessions, your average lines cleared is "+ average/testNum);
-		//return average/testNum;
+		  // return average/testNum;
+        //return average/testNum;
 	}
 	
 	public static void main(String[] args) {
 		PlayerSkeleton p = new PlayerSkeleton();
-		//p.playWithVisual(300);
-		p.getAverageLinesCleared(10);
+//		p.playWithVisual(100);
+		p.getAverageLinesCleared(50);
+        
+//        int max = 0;
+//		double maxA = 0, maxAlpha = 0;
+//		for (double a=1; a<=10; a++) {
+//			A=a;
+//			for (double alpha = -5; alpha <=5; alpha++ ) {
+//				ALPHA = alpha;
+//				int current = p.getAverageLinesCleared(10);
+//				if (current>max) {
+//					max = current;
+//					maxA = a;
+//					maxAlpha = alpha;
+//				}
+//			}
+//		}
+//		System.out.println("a = " + maxA + "  maxAlpha = "+maxAlpha);
+        
 	}
 	
 }
