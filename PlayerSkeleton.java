@@ -175,7 +175,7 @@ public class PlayerSkeleton {
             
             //Possible bug
             for (int k = 1; k<= dependentRows[j][0]; k++)
-				costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;
+				costOfEachRow[j] += 0.0001 * costOfEachRow[dependentRows[j][k]] + A;
 //            
 //            System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
 //            System.out.println("sum: "+costOfEachRow[j]);
@@ -186,13 +186,13 @@ public class PlayerSkeleton {
 		}
         
         //add panelty for deep well and multiple well
-//        double costOfWell = 0;
-//        for(int i =1;i<3;i++){
-//            costOfWell+=getCostOfWell(i,field,top);
-//        }
+        double costOfWell = 0;
+        for(int i =1;i<3;i++){
+            costOfWell+=getCostOfWell(i,field,top);
+        }
 //        
 //
-//        cost+=costOfWell;
+        cost+= 0.075 * costOfWell;
 
        // cost+=getCostOfWell(1,field,top);
 		return cost;
@@ -735,7 +735,7 @@ public class PlayerSkeleton {
 			s.draw();
 			s.drawNext(0,0);
 			try {
-				Thread.sleep(sleepAmount);
+				Thread.sleep(sleepAmount/100);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -762,14 +762,13 @@ public class PlayerSkeleton {
 	
 	public static void main(String[] args) {
 		PlayerSkeleton p = new PlayerSkeleton();
-<<<<<<< HEAD
+//<<<<<<< HEAD
 		//p.playWithVisual(50);
-		p.getAverageLinesCleared(10);
-=======
-		p.playWithSpaceKey();
+//		p.getAverageLinesCleared(10);
+//		p.playWithSpaceKey();
 		//p.playWithVisual(300);
 		//p.getAverageLinesCleared(50);
->>>>>>> 2b5d46e95affecf6f0990ef1d29db41e76c7ab95
+		p.playWithVisual(1);
         
 //        int max = 0;
 //		double maxA = 0, maxAlpha = 0;
