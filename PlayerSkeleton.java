@@ -52,7 +52,7 @@ public class PlayerSkeleton {
 		int[] oldTop = s.getTop();
 		
         double minCost = MAX;
-        int mincostMove =0;
+        int minCostMove =0;
 		double bestMoveCost = Integer.MAX_VALUE;
 		for (int i= 0; i< legalMoves.length; i++) {
 			
@@ -76,12 +76,12 @@ public class PlayerSkeleton {
 			cost += computeStateCost(field,top);
 //            System.out.println("~~~~~~~~~~~~~~~cost = "+cost+"\n");
             
-//            if (cost < minCost) {
-//                minCost = cost;
-//                mincostMove = i;
-//            }
+            if (cost < minCost) {
+                minCost = cost;
+                minCostMove = i;
+            }
 			
-//                    return mincostMove;
+         
             
 			int k = -1;
 			for (int j= 0; j<F; j++)
@@ -99,8 +99,15 @@ public class PlayerSkeleton {
 			}		
 		}
 		
+		minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+		return minCostMove;
+	
+	}
+	
+	
+	public int getLookForwardResult(int[] topMove, double[] topCost, int[][] topTops, int[][][] topFields, int turnNumber) {
 		// Look Forward
-		double bestAmortizedCost = MAX;
+		double bestAmortizedCost = MAX, bestMoveCost;
 		int bestAmortizedMove = 0;
 		
 		for (int i = 0; i<F; i++) {
@@ -124,7 +131,7 @@ public class PlayerSkeleton {
 								field[j][k] = topFields[i][j][k];
 						
 						// The current turn number is S.turnNumber + 2
-						double cost = computeMoveCost(nextPiece, fullLegalMoves[nextPiece][l][State.ORIENT], fullLegalMoves[nextPiece][l][State.SLOT], field, top, s.getTurnNumber()+2);
+						double cost = computeMoveCost(nextPiece, fullLegalMoves[nextPiece][l][State.ORIENT], fullLegalMoves[nextPiece][l][State.SLOT], field, top, turnNumber);
 						cost += computeStateCost(field,top);
 						
 						if (cost < bestMoveCost) {
@@ -304,11 +311,11 @@ public class PlayerSkeleton {
 	private int getNumofBlocksAbove(int[][] field, int[] top, int row, int col){
 	    int numOfBlocks = 0;
 	    
-//	    for (int i = row+1; i < top[col]; i++){
-//	        if (field[i][col] != 0){
-//	            numOfBlocks++;
-//	        }
-//	    }
+	    for (int i = row+1; i < top[col]; i++){
+	        if (field[i][col] != 0){
+	            numOfBlocks++;
+	        }
+	    }
 	    return numOfBlocks;
 	}
 	private int max(int a, int b){
@@ -761,8 +768,8 @@ public class PlayerSkeleton {
 //		p.getAverageLinesCleared(10);
 //		p.playWithSpaceKey();
 		//p.playWithVisual(300);
-		//p.getAverageLinesCleared(50);
-		p.playWithVisual(1);
+		p.getAverageLinesCleared(2);
+		//p.playWithVisual(1);
         
 //        int max = 0;
 //		double maxA = 0, maxAlpha = 0;
