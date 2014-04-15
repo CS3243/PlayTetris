@@ -53,7 +53,7 @@ public class PlayerSkeleton {
 		int[] oldTop = s.getTop();
 		
         double minCost = MAX;
-        int mincostMove =0;
+        int minCostMove =0;
 		double bestMoveCost = Integer.MAX_VALUE;
 		for (int i= 0; i< legalMoves.length; i++) {
 			
@@ -77,12 +77,12 @@ public class PlayerSkeleton {
 			cost += computeStateCost(field,top);
 //            System.out.println("~~~~~~~~~~~~~~~cost = "+cost+"\n");
             
-//            if (cost < minCost) {
-//                minCost = cost;
-//                mincostMove = i;
-//            }
+            if (cost < minCost) {
+                minCost = cost;
+                minCostMove = i;
+            }
 			
-//                    return mincostMove;
+         
             
 			int k = -1;
 			for (int j= 0; j<F; j++)
@@ -100,8 +100,15 @@ public class PlayerSkeleton {
 			}		
 		}
 		
+		minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+		return minCostMove;
+	
+	}
+	
+	
+	public int getLookForwardResult(int[] topMove, double[] topCost, int[][] topTops, int[][][] topFields, int turnNumber) {
 		// Look Forward
-		double bestAmortizedCost = MAX;
+		double bestAmortizedCost = MAX, bestMoveCost;
 		int bestAmortizedMove = 0;
 		
 		for (int i = 0; i<F; i++) {
@@ -125,7 +132,7 @@ public class PlayerSkeleton {
 								field[j][k] = topFields[i][j][k];
 						
 						// The current turn number is S.turnNumber + 2
-						double cost = computeMoveCost(nextPiece, fullLegalMoves[nextPiece][l][State.ORIENT], fullLegalMoves[nextPiece][l][State.SLOT], field, top, s.getTurnNumber()+2);
+						double cost = computeMoveCost(nextPiece, fullLegalMoves[nextPiece][l][State.ORIENT], fullLegalMoves[nextPiece][l][State.SLOT], field, top, turnNumber);
 						cost += computeStateCost(field,top);
 						
 						if (cost < bestMoveCost) {
@@ -161,10 +168,15 @@ public class PlayerSkeleton {
 		double[] costOfEachRow = new double[State.ROWS]; 
 		int[][] dependentRows = getDependendLinesSet(field);
 		double cost = 0;
+		int highestRow = 0;
 		
 		// Calculate the cost of each row
-		//TODO: shall we start from the top most row instead of the entire rows?
-		for (int j=State.ROWS-1; j>=0; j--) {
+		for (int j = 0; j<State.COLS; j++) {
+			if (top[j] > highestRow) highestRow = top[j];
+		}
+		
+		
+		for (int j=highestRow; j>=0; j--) {
       //      System.out.println("row: "+j);
             double cost1 = B*getNumberOfHoles(field, j);
 			costOfEachRow[j] +=  cost1;
@@ -176,15 +188,25 @@ public class PlayerSkeleton {
             
             //Possible bug
 
+
             for (int k = 1; k<= dependentRows[j][0]; k++)
-				costOfEachRow[j] += 0.001 * costOfEachRow[dependentRows[j][k]] + A;
-//            
+				costOfEachRow[j] += 0.0001 * costOfEachRow[dependentRows[j][k]] + A;       
+
 //            System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
 //            System.out.println("sum: "+costOfEachRow[j]);
             
 			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j]));
        //      System.out.println("cost: "+ costOfEachRow[j] +", enhancedCost: " + enhancedCost);
             cost += enhancedCost;
+		}
+		
+		for (int j = highestRow; j>=0; j--) {
+			double dependentLinesCost = 0;
+			for (int k = 1; k<= dependentRows[j][0]; k++)
+				dependentLinesCost += costOfEachRow[dependentRows[j][k]];
+			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j] + dependentLinesCost));
+		       //      System.out.println("cost: "+ costOfEachRow[j] +", enhancedCost: " + enhancedCost);
+		    cost += enhancedCost;
 		}
         
         //add panelty for deep well and multiple well
@@ -810,8 +832,8 @@ public class PlayerSkeleton {
 //		p.getAverageLinesCleared(10);
 //		p.playWithSpaceKey();
 		//p.playWithVisual(300);
-		//p.getAverageLinesCleared(50);
-		p.playWithVisual(1);
+		p.getAverageLinesCleared(2);
+		//p.playWithVisual(1);
         
 //        int max = 0;
 //		double maxA = 0, maxAlpha = 0;
