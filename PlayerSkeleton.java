@@ -193,8 +193,8 @@ public class PlayerSkeleton {
 //            costOfWell+=getCostOfWell(i,field,top);
 //        }
         //cost of wells
-        //cost+= (getCostOfWellTop(1,field,top)+getCostOfWell(field, top))*0.1;
-        cost+= (getCostOfWell(field, top))*0.1;
+        cost+= (getCostOfWellTop(1,field,top)+getCostOfWell(field, top))*0.1;
+        //cost+= (getCostOfWell(field, top))*0.1;
         cost+= 0.1 * costOfWell;
 
       
@@ -238,40 +238,41 @@ public class PlayerSkeleton {
 	    
 	    for(int c=0; c < State.COLS; c++){
 	        //check width under top[c]
-	        for(int r=0; r<top[c]; r++){
+	        for(int r=0; r<top[c]-1; r++){
 	            
 	            int heightOfWell = 0;
 	            if (field[r][c] == 0){
 	                heightOfWell++;
-	                if (heightOfWell > 3){
+	                
+	                if ((heightOfWell > 3)&&(field[r+1][c]!=0)){
 	                    costOfWell = costOfWell + heightOfWell*(r-heightOfWell)*0.001;
 	                }
 	            }else{
 	                heightOfWell = 0;
 	            }
 	        }
-	        int diff1=0;
-	        int diff2=0;
-	        int diff=0;
-	        //check well on top of top[c]
-	        //leftmost
-	        if (c==0){
-	            diff1=21-top[c];
-	            diff2=top[c+1]-top[c];
-	            
-	
-	        }else if(c==State.COLS-1){  //right most
-	            diff1=top[c-1]-top[c];
-                diff2=21-top[c];
-	        }else{
-	            diff1=top[c-1]-top[c]; 
-	            diff2=top[c+1]-top[c];
-	        }
-	        diff = max(diff1,diff2);
-	        if (diff >= 3){
-	            //costOfWell = costOfWell + diff*(top[c]-1)*0.1;
-	            costOfWell = costOfWell + 5;
-	        }
+//	        int diff1=0;
+//	        int diff2=0;
+//	        int diff=0;
+//	        //check well on top of top[c]
+//	        //leftmost
+//	        if (c==0){
+//	            diff1=21-top[c];
+//	            diff2=top[c+1]-top[c];
+//	            
+//	
+//	        }else if(c==State.COLS-1){  //right most
+//	            diff1=top[c-1]-top[c];
+//                diff2=21-top[c];
+//	        }else{
+//	            diff1=top[c-1]-top[c]; 
+//	            diff2=top[c+1]-top[c];
+//	        }
+//	        diff = max(diff1,diff2);
+//	        if (diff >= 3){
+//	            //costOfWell = costOfWell + diff*(top[c]-1)*0.1;
+//	            costOfWell = costOfWell + 5;
+//	        }
 	    }
 	    
 	    return costOfWell;
