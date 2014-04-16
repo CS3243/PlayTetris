@@ -5,11 +5,15 @@ import java.lang.Math;
 public class PlayerSkeleton {
 	// ALPHA refers to the coefficient for rows cleared feature
 
-	public static  double ALPHA = -10;
+	public static  double ALPHA = -2;
 	// B refers to the coefficient for number of holes in each row
-	public static final double B = 17;
+	public static  double B = 18;
 	// A refers to the bonus cost for each existing dependent lines
-	public static double A = 0.5;
+	public static double A = 2;
+	// W refers to the penalty coefficient for well
+	public static double W = 0.1;
+	// AD refers to the coefficient multipied to each dependent line costs
+	public static double AD = 0.0001;
 	// Number of states considered when look forward
 	public static final int F = 5;
 	public static final double MAX= Double.MAX_VALUE;
@@ -55,7 +59,6 @@ public class PlayerSkeleton {
 		
         double minCost = MAX;
         int minCostMove =0;
-		double bestMoveCost = Integer.MAX_VALUE;
 		for (int i= 0; i< legalMoves.length; i++) {
 			
 			int[] top = new int[State.COLS];
@@ -100,7 +103,7 @@ public class PlayerSkeleton {
 			}		
 		}
 		
-		minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+		//minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
 		return minCostMove;
 	
 	}
@@ -175,57 +178,50 @@ public class PlayerSkeleton {
 			if (top[j] > highestRow) highestRow = top[j];
 		}
 		
+		highestRow --;
 		
 		for (int j=highestRow; j>=0; j--) {
-      //      System.out.println("row: "+j);
             double cost1 = B*getNumberOfHoles(field, j);
 			costOfEachRow[j] +=  cost1;
-     //       System.out.println("cost of holes: "+cost1);
+  //          System.out.println("cost of holes: "+cost1);
             
             double cost2 =getCostOfGap (field, top, j);
 			costOfEachRow[j] += cost2;
-	//		 System.out.println("cost of gap: "+cost2);
+		//	 System.out.println("cost of gap: "+cost2);
             
-            //Possible bug
-
-
+      
             for (int k = 1; k<= dependentRows[j][0]; k++)
-				costOfEachRow[j] += 0.0001 * costOfEachRow[dependentRows[j][k]] + A;       
-
-//            System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
-//            System.out.println("sum: "+costOfEachRow[j]);
-            
+				costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;       
+            //System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
+            //System.out.println("sum: "+costOfEachRow[j]);          
 			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j]));
+			//costOfEachRow [j] = enhancedCost;
        //      System.out.println("cost: "+ costOfEachRow[j] +", enhancedCost: " + enhancedCost);
             cost += enhancedCost;
 		}
 		
-		for (int j = highestRow; j>=0; j--) {
-			double dependentLinesCost = 0;
-			for (int k = 1; k<= dependentRows[j][0]; k++)
-				dependentLinesCost += costOfEachRow[dependentRows[j][k]];
-			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j] + dependentLinesCost));
-		       //      System.out.println("cost: "+ costOfEachRow[j] +", enhancedCost: " + enhancedCost);
-		    cost += enhancedCost;
-		}
-        
+//		for (int j = highestRow; j>=0; j--) {
+//			double dependentLinesCost = 0;
+//			for (int k = 1; k<= dependentRows[j][0]; k++)
+//				dependentLinesCost += costOfEachRow[dependentRows[j][k]];
+//			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j] + 0.8*Math.sqrt(dependentLinesCost)));
+//		           System.out.println("cost: "+ costOfEachRow[j] +", dependent Cost: " + Math.sqrt(dependentLinesCost));
+//			cost += enhancedCost;
+//		}
+//        
         //add panelty for deep well and multiple well
-        double costOfWell = 0;
-//        for(int i =1;i<2;i++){
-//            costOfWell+=getCostOfWell(i,field,top);
-//        }
         //cost of wells
-        cost+= (getCostOfWellTop(1,field,top)+getCostOfWell(field, top))*0.1;
-        //cost+= (getCostOfWell(field, top))*0.1;
-        cost+= 0.1 * costOfWell;
-
+		double costOfWell = (getCostOfWellTop(1,field,top)+getCostOfWell(field, top))*1 ;
+		//System.out.println("cost of Wells " + costOfWell + "\n");
+        cost+= costOfWell;
+        // System.out.println("Overall cost " + cost + "\n");
       
 		return cost;
 	}
     
     
     public double getCostOfWellTop(int width, int[][] field, int[] top) {
-		double cost = 0, unit = 5;
+		double cost = 0;
 		for (int i = 0; i<State.COLS-width+1; i++) {
 			boolean isWell = true;
 			for (int j=i; j<=i+width-1; j++){
@@ -235,22 +231,14 @@ public class PlayerSkeleton {
 				}
 			}
 			if (isWell) {
-				// If its left side exists, it cannot be shorter than the ith column
-				if (i-1 >0 && top[i-1]<=top[i]) isWell = false;
-				// Same apply for right side
-				if (i+width <State.COLS && top[i+width] <= top[i]) isWell = false;
-			}
-			if (isWell) {
-				boolean l = false, r = false;
-				// Either its left side is wall,
-				// or the left side is 3 units taller than the ith column
-				if (i-1 >=0 && top[i-1]-top[i]>=3) l = true;
-				// same apply for its right side
-				if (i+width < State.COLS && top[i+width]-top[i]>=3) r = true;
-				isWell = r||l;
-			}
-			if (isWell) {
-				cost = cost + unit;
+				int leftTop, rightTop;
+				if (i-1 <0) leftTop = State.ROWS+1; else leftTop = top[i-1];
+				if (i+width >= State.COLS) rightTop = State.ROWS+1; else rightTop = top[i+width];
+				int minSideTop = min(leftTop, rightTop);
+				if (minSideTop - top[i] >=3) {
+					cost += (minSideTop-top[i])+(top[i]-1)*0.5;
+				}
+				
 			}
 		}
 		return cost;
@@ -260,14 +248,15 @@ public class PlayerSkeleton {
 	    
 	    for(int c=0; c < State.COLS; c++){
 	        //check width under top[c]
-	        for(int r=0; r<top[c]-1; r++){
-	            
-	            int heightOfWell = 0;
+	    	int heightOfWell = 0;
+	       for(int r=0; r<top[c]-1; r++){
 	            if (field[r][c] == 0){
-	                heightOfWell++;
-	                
-	                if ((heightOfWell > 3)&&(field[r+1][c]!=0)){
-	                    costOfWell = costOfWell + heightOfWell*(r-heightOfWell)*0.001;
+	            	heightOfWell++;
+	                if ((heightOfWell >= 3)&&(field[r+1][c]!=0)){
+	                	int numRowsAbove = top[c]-r;
+	                	costOfWell = costOfWell + heightOfWell + numRowsAbove*1.5 + (r-heightOfWell)*0.5;
+	                	//System.out.println(costOfWell);
+	                    //costOfWell = costOfWell + heightOfWell*(r-heightOfWell)*0.1;
 	                }
 	            }else{
 	                heightOfWell = 0;
@@ -296,7 +285,6 @@ public class PlayerSkeleton {
 //	            costOfWell = costOfWell + 5;
 //	        }
 	    }
-	    
 	    return costOfWell;
 	}
 	
@@ -700,9 +688,17 @@ public class PlayerSkeleton {
 		
 		//Add the rowAboveTheHole as the dependent row of the row the hole is at
 		boolean[] dependentRowsOfTheHole = new boolean[State.ROWS];
-		dependentRowsOfTheHole[rowAboveTheHole] = true;
+		//dependentRowsOfTheHole[rowAboveTheHole] = true;
+		for(int r = row;r<State.ROWS;r++){
+			int upperPieceIndicator = field[r][col];	
+			//If one of the upper piece is occupied, then we conclude that the piece we are checking is a hole
+			if(upperPieceIndicator != 0){
+				dependentRowsOfTheHole[r] = true;
+				dependentRowsOfTheHole = combineDependentRows(dependentRowsOfTheHole,dependentRows[r]);
+			}
+		}
 		
-		dependentRowsOfTheHole = combineDependentRows(dependentRowsOfTheHole,dependentRows[rowAboveTheHole]);
+		//dependentRowsOfTheHole = combineDependentRows(dependentRowsOfTheHole,dependentRows[rowAboveTheHole]);
 		
 		return dependentRowsOfTheHole;
 	}
@@ -818,7 +814,7 @@ public class PlayerSkeleton {
 				int t = pickMove(s,s.legalMoves());
 				s.makeMove(t);	
 			}
-			System.out.println(s.getRowsCleared());
+			//System.out.println(s.getRowsCleared());
 			average += s.getRowsCleared();
 		}
         
@@ -829,13 +825,17 @@ public class PlayerSkeleton {
 	public static void main(String[] args) {
 
 		PlayerSkeleton p = new PlayerSkeleton();
+		
+		AD =0.11;
+		W = 0.35;
+	//	W = 0.8;
 
-//<<<<<<< HEAD
+
 		//p.playWithVisual(50);
-//		p.getAverageLinesCleared(10);
-//		p.playWithSpaceKey();
-		//p.playWithVisual(300);
-		p.getAverageLinesCleared(2);
+			//p.getAverageLinesCleared(50);
+		p.playWithSpaceKey();
+//		p.playWithVisual(100);
+	//	p.getAverageLinesCleared(5);
 		//p.playWithVisual(1);
         
 //        int max = 0;
@@ -861,7 +861,13 @@ public class PlayerSkeleton {
 //            }
 //        }
 //		System.out.println("  maxAlpha = "+maxAlpha);
-    
+		
+	//	p.getAverageLinesCleared(2);
+//		for (double w = 0.00005; w<=1.0; w=w+0.05) {
+//			W= w;
+//			System.out.println("w = " + w);
+//			p.getAverageLinesCleared(40);
+//		}
 	}
 	
 }
