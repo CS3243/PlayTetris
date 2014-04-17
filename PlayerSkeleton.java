@@ -1,4 +1,6 @@
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.lang.Math;
 
 
@@ -37,6 +39,10 @@ public class PlayerSkeleton {
 	
 	public static int [][][] fullLegalMoves = State.legalMoves;
 	
+	//Use for detect the hole number changes
+	int previousHoleNumber = 0;
+	int currentBestHoleNumber;
+	
 	//Debug use
 	int turn = 0;
 //	int nextPiece = -1;
@@ -47,6 +53,8 @@ public class PlayerSkeleton {
 		turn ++;
 
         //initialization of variables
+		
+		
 		int[][][] topFields = new int[F][State.ROWS][State.COLS];
 		int[][] topTops = new int[F][State.COLS];
 		int[] topMove = new int[F];
@@ -81,9 +89,14 @@ public class PlayerSkeleton {
 			cost += computeStateCost(field,top);
 //            System.out.println("~~~~~~~~~~~~~~~cost = "+cost+"\n");
             
+			//Add the cost from the difference between hole numbers
+			int currentHoleNumber = getTotalNumberOfHoles(field);
+			cost += computeHolesNumberChangeCost(previousHoleNumber,currentHoleNumber);
+			
             if (cost < minCost) {
                 minCost = cost;
                 minCostMove = i;
+                currentBestHoleNumber = currentHoleNumber;
             }
 			
 
@@ -103,7 +116,7 @@ public class PlayerSkeleton {
 			}		
 		}
 		
-//		minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+		minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
 		return minCostMove;
 	
 	}
@@ -166,6 +179,44 @@ public class PlayerSkeleton {
 		}	
 	}
 	
+	public double computeHolesNumberChangeCost(int previous,int current){
+		return 1.61 * Math.sqrt((current - previous) * B);
+	}
+	
+	public int getTotalNumberOfHoles(int[][] field){
+		int holeNum = 0;
+		for(int row=0;row<State.ROWS;row++){
+			holeNum += getNumberOfHoles(field,row);
+		}
+		
+		return holeNum;
+	}
+	public double getMeanHeightCost(int[] top){
+		double meanHeight = getMeanHeight(top);
+//		System.out.println("mean height cost is" + B * 0.147 * Math.sqrt(Math.sqrt(meanHeight)));
+		return 0.4 * Math.sqrt(Math.sqrt(B * meanHeight));
+	}
+	public double getMeanHeightChangeCost(double previous, double current){
+		
+		return 0;
+	}
+	
+	public double getMeanHeight(int[] top){
+		int[] copy = copyArray(top);
+		Arrays.sort(copy);
+
+		return (copy[4] + copy[5])/2.0;
+	}
+	
+	public int[] copyArray(int[] array){
+		int[] copy = new int[array.length];
+		for(int i=0;i<array.length;i++){
+			copy[i] = array[i];
+		}
+		
+		return copy;
+	}
+	
 	
 	public double computeStateCost(int[][] field, int[] top) {
 		double[] costOfEachRow = new double[State.ROWS]; 
@@ -221,6 +272,8 @@ public class PlayerSkeleton {
 		costOfWell += getCostOfWellTop(1, field, top);
 //		System.out.println("cost of well is " + costOfWell);
         cost+= costOfWell;
+        
+        cost += getMeanHeightCost(top);
         
         double diff = 0;
         for (int j= 0; j< State.COLS-1; j++) {
@@ -709,14 +762,20 @@ public class PlayerSkeleton {
 		new TFrame(s);
 		while(!s.hasLost()) {
 			if (s.spacePressed) {
-				int t = pickMove(s,s.legalMoves());
-				s.makeMove(t);
+				makeGameMove(s);
 				s.draw();
 				s.drawNext(0,0);
 				s.spacePressed = false;
 			}
 		}
 		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
+	}
+	
+	public void makeGameMove(State s){
+		currentBestHoleNumber = previousHoleNumber;
+		int t = pickMove(s,s.legalMoves());
+		s.makeMove(t);
+		previousHoleNumber = currentBestHoleNumber;
 	}
 	
 	public int getBlockageNum(int[][] field){
@@ -761,9 +820,7 @@ public class PlayerSkeleton {
 		new TFrame(s);
 		int i=1;
 		while(!s.hasLost()) {
-			int t = pickMove(s,s.legalMoves());
-			//System.out.println("I choose this step  "+t);
-			s.makeMove(t);
+			makeGameMove(s);
 			s.draw();
 			s.drawNext(0,0);
 			try {
@@ -784,8 +841,7 @@ public class PlayerSkeleton {
 		for (int i=0; i<testNum; i++) {
 			State s = new State();
 			while(!s.hasLost()) {
-				int t = pickMove(s,s.legalMoves());
-				s.makeMove(t);	
+				makeGameMove(s);	
 			}
 			//System.out.println(s.getRowsCleared());
 			average += s.getRowsCleared();
