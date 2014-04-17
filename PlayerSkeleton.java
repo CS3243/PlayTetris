@@ -103,7 +103,7 @@ public class PlayerSkeleton {
 			}		
 		}
 		
-		//minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+//		minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
 		return minCostMove;
 	
 	}
@@ -191,7 +191,7 @@ public class PlayerSkeleton {
             
       
             for (int k = 1; k<= dependentRows[j][0]; k++)
-				costOfEachRow[j] += costOfEachRow[dependentRows[j][k]] + A;       
+				costOfEachRow[j] += 0.8*costOfEachRow[dependentRows[j][k]] + A;       
             //System.out.println("dependent rows: "+(costOfEachRow[j]-cost1-cost2));
             //System.out.println("sum: "+costOfEachRow[j]);          
 			double enhancedCost = Math.sqrt(Math.sqrt(costOfEachRow[j]));
@@ -212,6 +212,7 @@ public class PlayerSkeleton {
         //add panelty for deep well and multiple well
         //cost of wells
 		double costOfWell= 0;
+
 		costOfWell += getCostOfWellTop(1, field, top)*0.9;
 //		costOfWell += getCostOfWellTop(2, field, top)*0.28;
 //		costOfWell += getCostOfWellTop(3, field, top)*0.15;
@@ -240,7 +241,6 @@ public class PlayerSkeleton {
         }
         cost += diff*0.2;
         
-        
 		return cost;
 	}
     
@@ -252,16 +252,13 @@ public class PlayerSkeleton {
 			topBottom = 0;
 			for (int j=i; j<=i+width-1; j++){
 				topBottom = max(topBottom, top[j]);
-			} 
+			}
+
 			if (topBottom >=0) {
 				int leftTop, rightTop;
 				if (i-1 <0) leftTop = State.ROWS+1; else leftTop = top[i-1];
 				if (i+width >= State.COLS) rightTop = State.ROWS+1; else rightTop = top[i+width];
 				int minSideTop = min(leftTop, rightTop);
-			//	System.out.println(i+"  "+width+"  "+minSideTop + "  "+topBottom);
-//				if ((minSideTop-topBottom)*width + square >=cutoff) {
-//					cost += ((minSideTop-topBottom)*width + square) *0.88/width ;//+(topBottom-1)*0.4;
-//				}
 				if (minSideTop - topBottom >=3) {
 					cost += ((minSideTop -topBottom) *0.88);
 				}
@@ -507,55 +504,6 @@ public class PlayerSkeleton {
         //return gapType*LEARNEDGAPCOST[width-1][gapType];
         return LEARNEDGAPCOST[width-1][gapType];
     }
-    
-//    private int getGapIndex(int diff1, int diff2, int diff3, int diff4){
-        
-        
-//        if(diff2>3 && diff3>3){
-//        
-//            switch(Math.max(diff2,diff3)){
-//                case 4:
-//                    return 10;
-//                case 5:
-//                    return 11;
-//                case 6:
-//                    return 12;
-//                case 7:
-//                    return 13;
-//                case 8:
-//                    return 14;
-//                default:
-//                    return 15;
-//            }
-//        
-//        
-//        }
-//        else
-//            if (diff2 >=3 && diff3>= 3){
-//            return 9;
-//        }else if ((diff1==2 && diff2 <=1 && diff3 == 3)||(diff2 ==3 && diff3 ==1 && diff4==2)){
-//            return 3;
-//        }else if ((diff2 ==1 && diff3 == 3)||(diff2 ==3 && diff3 ==1)){
-//            return 8;
-//        }else if (diff1==2 && diff2 ==1 && diff3 == 1 && diff4==2){
-//                return 7;
-//        }  else if ((diff1 <= 1 && diff2 == 1 && diff3==1&&diff4==2)||(diff1 == 2 && diff2 == 1 && diff3==1&&diff4<=1)){
-//                return 2;
-//        }else if (diff2==1 && diff3== 1){
-//            return 0;
-//        }else if ((diff2 ==2 && diff3 == 1 && diff4==2)||(diff1==2 && diff2 ==1 && diff3 ==2)){
-//            return 5;
-//        }else if ((diff2 == 1 && diff3==2)||(diff2 == 2 && diff3==1)){
-//            return 1;
-//        }else if (diff2 ==2 && diff3 == 2){
-//            return 4;
-//        }else if ((diff2 ==2 && diff3 == 3)||(diff2 ==3 && diff3 ==2)){
-//            return 6;
-//        }else {
-//           // System.out.println("difference: "+diff1+", "+diff2+", "+diff3+", "+diff4);
-//          return 10;
-//        }
-//	}
 
 	private int getGapIndex(int diff1, int diff2, int diff3, int diff4){
 
@@ -856,19 +804,8 @@ public class PlayerSkeleton {
 		AD =0.11;
 		W = 0.35;
 		W = 0.5;
-		 p.getAverageLinesCleared(100);
-//		for (double w = 0.45; w<=0.55; w+=0.1) {
-//			W = w;
-//			System.out.println(w);
-//			p.getAverageLinesCleared(100);
-//		}
+		p.playWithSpaceKey();
 
-		//p.playWithVisual(50);
-		//p.getAverageLinesCleared(50);
-		//p.playWithSpaceKey();
-//		p.playWithVisual(100);
-		ALPHA = -1;
-		//p.getAverageLinesCleared(100);
 		
 		//p.playWithVisual(1);
         
