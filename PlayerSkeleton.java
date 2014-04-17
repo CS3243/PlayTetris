@@ -116,7 +116,7 @@ public class PlayerSkeleton {
 			}		
 		}
 		
-		minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+//		minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
 		return minCostMove;
 	
 	}
