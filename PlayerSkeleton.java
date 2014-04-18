@@ -1,14 +1,30 @@
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
 import java.lang.Math;
 
 
 public class PlayerSkeleton {
+	
+	public boolean toFile;
+	public PrintWriter writer;
+	public String fileName;
 	public static double LANDINGHEIGHT = 4.500158825082766;
 	public static double ROWSCLEARED = -3.4181268101392694;
 	public static double ROWTRANSITIONS = 3.2178882868487753;
 	public static double COLTRANSITIONS = 9.348695305445199;
 	public static double HOLES = 7.899265427351652;
 	public static double WELLS = 3.3855972247263626;
+	
+	public double[][] lowerUpperBound = new double[][] {{-5, 5}, {-5, 10}, {-5, 10},
+														{-5, 10}, {-5, 10}, {-5, 10}};
+	
 	
 	// ALPHA refers to the coefficient for rows cleared feature
 	public static  double ALPHA = -1.6;
@@ -68,7 +84,7 @@ public class PlayerSkeleton {
 		int[] oldTop = s.getTop();
 		
         double minCost = MAX;
-        int minCostMove =0;
+        int minCostMove =0, maxHeight = 0;
 		for (int i= 0; i< legalMoves.length; i++) {
 			
 			int[] top = new int[State.COLS];
@@ -89,9 +105,15 @@ public class PlayerSkeleton {
             //all other terms except w(s)
 			cost += computeStateCost(field,top, turn);
             
+			int highestRow = 0;
+			for (int j = 0; j<State.COLS; j++) {
+				if (top[j] > highestRow) highestRow = top[j];
+			}
+			
             if (cost < minCost) {
                 minCost = cost;
                 minCostMove = i;
+                maxHeight = highestRow;
             }
 			
 
@@ -111,7 +133,9 @@ public class PlayerSkeleton {
 			}		
 		}
 		
-		//minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+		if (maxHeight >= State.ROWS-5) 	{
+			minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+		}
 		return minCostMove;
 	
 	}
@@ -888,6 +912,257 @@ public class PlayerSkeleton {
 		return arr;
 	}
 	
+	public double getRandomAtPosition(int k) {
+//		switch (k) {
+//			case 0: return Math.random()*15-10; // ALPHA -10~5
+//			case 1: return Math.random()*20+10; // B 10~30
+//			case 2: return Math.random()*8-2; // A -2~6
+//			case 3: return Math.random()*5-2; // W -2~3
+//			case 4: return Math.random()*4-1; // C -1~3
+//			case 5:
+//			case 6: 
+//			case 7: return Math.random()*2;
+//		};
+//		if (k == 1) {
+//			return Math.random()*10-5;
+//		} else return Math.random()*15-5;
+		
+		double range = lowerUpperBound[k][1] -lowerUpperBound[k][0]; 
+		return Math.random()*range + lowerUpperBound[k][0]; 
+	}
+	
+	public void runPSO() {
+		int S = 63;
+		int numTestCase = 10;
+		double OMEGA = -0.3593, THETAP = -0.7238, THETAQ = 2.0289;
+		int numOfParameters = 6;
+		int optimal = 0;
+		double[] optimalParameter = new double [numOfParameters];
+		int[] pv = new int[S];
+		double [] d = new double [numOfParameters];
+		double[][] p = new double [S][numOfParameters];
+		double[][] x = new double [S][numOfParameters];
+		double[][] v = new double [S][numOfParameters];
+		// initialization
+		for (int i = 0; i< numOfParameters; i++) {
+			d[i] = lowerUpperBound[i][1] - lowerUpperBound[i][0];
+		}
+		for (int i = 0; i < S; i++) {
+			for (int j = 0; j<numOfParameters; j++) {
+				p[i][j] = getRandomAtPosition(j);
+				x[i][j] = p[i][j];
+				// (-d, d) where d = | upperbound - lowerbound|
+				 v[i][j] = Math.random() *2*d[j] - d[j];
+			}
+			setParameter(p[i]);
+			pv[i] = getAverageLinesCleared(numTestCase);
+			if (pv[i] > optimal) {
+				optimal = pv[i];
+				optimalParameter = p[i];
+			}
+		}
+		System.out.println(optimal);
+		
+		
+		// Iterate
+		for (int it = 0; it < 10; it++) {
+			for (int i = 0; i< S; i++) {
+				double r1 = Math.random();
+				double r2 = Math.random();
+				for (int j = 0; j< numOfParameters; j++) {
+					v[i][j] = OMEGA * v[i][j] + r1*THETAP * (p[i][j] - x[i][j]) 
+							+ r2*THETAQ * (optimalParameter[j] -x[i][j]);
+					
+					// Bound the velocity
+					v[i][j] = getBound(v[i][j], -d[j], d[j]);
+					x[i][j] += v[i][j];
+					x[i][j] = getBound(x[i][j], lowerUpperBound[j][0], lowerUpperBound[j][1]);
+				}
+				setParameter (x[i]);
+				int res = getAverageLinesCleared(numTestCase);
+				if (res > pv[i]) {
+					pv[i] = res;
+					p[i] = x[i];
+				}
+				if (res > optimal) {
+					setWriteToFile(fileName);
+					optimal = res;
+					System.out.println(res);
+					optimalParameter = x[i];
+					outputParameter();
+					if (toFile) {
+						writer.println(optimal);
+					}
+					writer.close();
+				}				
+			}
+		}
+	}
+	
+	public double getBound (double x, double l, double u) {
+		if (x > u) return u;
+		if (x< l) return l;
+		return x;
+	}
+	
+	public void runGeneticAlgorithm() {
+		// ALPHA refers to the coefficient for rows cleared feature
+//		public static  double ALPHA = -1;
+//		// B refers to the coefficient for number of holes in each row
+//		public static  double B = 19;
+//		// A refers to the bonus cost for each existing dependent lines
+//		public static double A = 1;
+//		// W refers to the penalty coefficient for well
+//		public static double W = 0.9;
+//		// C refers to the penalty for line difference
+//		public static  double C = 0.2;
+//		// AD refers to the coefficient multipied to each dependent line costs
+//		public static double AD = 0.8;          
+		int numOfParameters = 6;
+		int size = 30;
+		int numOfTop = 7;
+		double[][] parameters = new double[size][numOfParameters];
+		int[] results = new int [size];
+		
+		// range : -10 --- 20 , precision 0.1 
+		for (int i = 0; i<size; i++) {
+			for (int j = 0; j<numOfParameters; j++) {
+				// Math.random() generates a random number between 0 to 1
+				parameters[i][j] = getRandomAtPosition(j);
+			}	
+		}
+		
+		for (int i = 0; i<size; i++) {
+			setParameter(parameters[i]);
+			results[i] = getAverageLinesCleared(10);
+		}
+		
+		int[] topResultsIndex,  newResults = null;
+		int numOfCrossBreed = numOfTop * (numOfTop-1);
+		double[][] newParameters = null;
+		for (int iteration = 0; iteration <= 10; iteration ++) {
+			topResultsIndex = getTopResultsIndex(numOfTop, results);	
+			newParameters= new double [numOfCrossBreed + numOfTop][numOfParameters];
+			newResults = new int[numOfCrossBreed + numOfTop];
+			// crossbreeding and mutation 
+			// P(mutate) = 0.1
+			int index = -1;
+			for (int i = 0; i< numOfTop; i++) {
+				for (int j = 0; j<numOfTop; j++) {
+					if (i!=j) {
+					index ++;
+					// Start to crossbreed P[topindex[i]] and P[topindex[j]]
+					for (int k = 0; k< numOfParameters; k++) {
+						double random = Math.random();
+						// Select which parent to inherit from
+						if (random <=0.5 ) {
+							newParameters[index][k] = parameters[topResultsIndex[i]][k];
+						} else {
+							newParameters[index][k] = parameters[topResultsIndex[j]][k];
+						}
+						random = Math.random();
+						// Decide if to mutate
+						if (random <= 0.1) {
+							newParameters[index][k]  = getRandomAtPosition(k);
+							//System.out.println("randomizde!");
+						}
+					}
+					setParameter(newParameters[index]);
+					double [] a = getAverageLinesClearedWithSd(10);
+					newResults[index] = (int)a[1]; 
+					if (a[1] >= 1000 ) {
+						//System.out.println("Hey I am outputing!");
+						outputParameter();
+						if (!toFile) {
+							System.out.println(a[0]+ "  "+newResults[index]);
+						} else {
+							writer.println(a[0]+ "  "+newResults[index]);
+						}
+						
+						if (toFile) {
+							writer.flush();
+							writer.close();
+							setWriteToFile(this.fileName);
+						}
+					}
+					}
+				}
+			}
+			
+			for (int i = 0; i < numOfTop; i++) {
+				newParameters [i  + numOfCrossBreed] = parameters[topResultsIndex[i]];
+				newResults [i + numOfCrossBreed] = results[topResultsIndex[i]];
+			}
+		
+			topResultsIndex = getTopResultsIndex(size, newResults);
+			for (int i = 0; i<size; i++) {
+				parameters[i] = newParameters[topResultsIndex[i]];
+			}
+		
+		}
+		
+		int bestResultIndex = 0;
+		for (int i = 1; i< numOfTop + numOfCrossBreed; i++) {
+			if (newResults[i] > newResults[bestResultIndex]) {
+				bestResultIndex = i;
+			}
+		}
+		setParameter(newParameters[bestResultIndex]);
+		//System.out.println(newResults[bestResultIndex]);
+		//System.out.print("Alpha = " + Math.round(ALPHA*100/100) + " B = " + Math.round(B*100)/100 + " A = "+ Math.round(A*100)/100+" W = "+ Math.round(W*100)/100);
+		//System.out.println("  C = "+ Math.round(C*100)/100+ " AD = "+ Math.round(AD*100)/100);
+		
+		//outputParameter();
+	}
+	
+	public int[] getTopResultsIndex (int numOfTop, int[] results) {
+		int size = results.length;
+		int[] ans = new int [numOfTop];
+		for (int i = 0; i< numOfTop; i++) {
+			ans[i] = i;
+		}
+		for (int i = numOfTop; i< size ; i++) {
+			int k = -1;
+			for (int j= 0; j<numOfTop; j++)
+				if (results[i] > results[ans[j]]) {
+					if (k == -1  || results[ans[j]]<results[ans[k]]) k = j;
+				}
+			if (k!=-1) {
+				ans[k] = i;
+			}
+		}
+		return ans;
+	}
+	
+	public void outputParameter() {
+//		System.out.print("Alpha = " + ALPHA + " B = " + B + " A = "+ A+" W = "+ W) ;
+//		System.out.println("  C = "+ C+ " AD = "+ AD +"  MH = " +MH+ "  X = "+X);
+		if (toFile) {
+			writer.println("LH = " + LANDINGHEIGHT + " RC = "+ROWSCLEARED + " RT = "+ROWTRANSITIONS 
+					+" CT = " +COLTRANSITIONS + " H = " + HOLES + " W = "+ WELLS);
+		} else {
+			System.out.println("LH = " + LANDINGHEIGHT + " RC = "+ROWSCLEARED + " RT = "+ROWTRANSITIONS 
+					+" CT = " +COLTRANSITIONS + " H = " + HOLES + " W = "+ WELLS);
+		}
+		
+	}
+	public void setParameter(double[] parameter) {
+//		public static double LANDINGHEIGHT = 4.500158825082766;
+//		public static double ROWSCLEARED = -3.4181268101392694;
+//		public static double ROWTRANSITIONS = 3.2178882868487753;
+//		public static double COLTRANSITIONS = 9.348695305445199;
+//		public static double HOLES = 7.899265427351652;
+//		public static double WELLS = 3.3855972247263626;
+		
+		LANDINGHEIGHT = parameter[0];
+		ROWSCLEARED = parameter[1];
+		ROWTRANSITIONS = parameter[2];
+		COLTRANSITIONS = parameter[3];
+		HOLES = parameter[4];
+		WELLS = parameter[5];
+		
+	}
+	
 	public int getBlockageOfFromHoleAToHoleB(int[][] field,int rowStart,int rowEnd,int col){
 		int count = 0;
 		for(int r=rowStart;r<rowEnd;r++){
@@ -921,31 +1196,81 @@ public class PlayerSkeleton {
 		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
 	}
 	
+	
 	public int getAverageLinesCleared (int testNum) {
-		int average=0;
-		for (int i=0; i<testNum; i++) {
-			State s = new State();
-			while(!s.hasLost()) {
-				int t = pickMove(s,s.legalMoves());
-				s.makeMove(t);	
-			}
-			//System.out.println(s.getRowsCleared());
-			average += s.getRowsCleared();
-		}
-        
-		System.out.println("when B = " +B +" and alpha = "+ALPHA +", your average lines cleared is "+ average/testNum);
-        return average/testNum;
+		double [] ans = getAverageLinesClearedWithSd(testNum);
+		return (int) ans[1];
 	}
 	
-	public static void main(String[] args) {
+	// It now returns an array, r[0] stores the standard deviation, r[1] stores the average
+	public double[] getAverageLinesClearedWithSd (int testNum) {
+		int average=0;
+		int[] r = new int[testNum+1];
+		for (int i=0; i<testNum; i++) {
+			State s = new State();
+            int j=1;
+			while(!s.hasLost()) {
+				int t = pickMove(s,s.legalMoves());
+				s.makeMove(t);
+                if(s.getRowsCleared() > j * 5000){
+                   // System.out.println("For test num "+ i +". For now, the cost is:" + s.getRowsCleared());
+                    j ++;
+                }
+			}
+			
+			r[i+1] = s.getRowsCleared();
+			average += r[i+1];
 
-		PlayerSkeleton p = new PlayerSkeleton();
+		}
+        r[0] = average/testNum;
+        double sd = 0;
+        for (int i = 1; i<=testNum; i++) {
+        	sd += ((r[i]-r[0])*(r[i]-r[0]));
+        }
+        double[] ans = new double [] {Math.sqrt(sd/testNum), r[0]};
+        return ans;
+		//System.out.println("when B = " +B +" and alpha = "+ALPHA +", your average lines cleared is "+ average/testNum);
+	}
+	
+	
+	public void setWriteToFile(String fileName) {
+		this.toFile = true;
+		this.fileName = fileName;
+		try {
+			writer = new PrintWriter(new BufferedWriter(new FileWriter(fileName, true)));
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
-		AD =0.11;
-		W = 0.35;
-		W = 0.5;
+	}
+		
+	public static void main(String[] args) {
+		long sec = System.currentTimeMillis();
+		String fileName = Long.toString(sec);
+		
+		PlayerSkeleton p = new PlayerSkeleton();
+		p.setWriteToFile(fileName);
+		//p.runGeneticAlgorithm();
+		p.runPSO();
+		p.writer.close();
+		
+		
+		
+//		AD =0.11;
+//		W = 0.35;
+//		W = 0.5;
+		//p.getAverageLinesCleared(1);
+		//p.getAverageLinesCleared(2);
 //		p.playWithSpaceKey();
-		p.playWithVisual(0);
+		//p.playWithVisual(0);
+		
         
 	}
 	
