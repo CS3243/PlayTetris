@@ -6,6 +6,7 @@ public class PlayerSkeleton {
 	public boolean toFile;
 	public PrintWriter writer;
 	public String fileName;
+    
 	public static double LANDINGHEIGHT = 4.500158825082766;
 	public static double ROWSCLEARED = -3.4181268101392694;
 	public static double ROWTRANSITIONS = 3.2178882868487753;
@@ -14,38 +15,35 @@ public class PlayerSkeleton {
 	public static double WELLS = 3.3855972247263626;
 	public double[][] lowerUpperBound = new double[][] {{-5, 5}, {-5, 10}, {-5, 10},
     {-5, 10}, {-5, 10}, {-5, 10}};
-	
-	// Number of states considered when look forward
-	public static final int F = 5;
-	public static final double MAX= Double.MAX_VALUE;
-    
-	// Cost of gap with width larger than 2
-	public static final double gapCostForLongerWidth = 1;
-	
 	public static int [][][] fullLegalMoves = State.legalMoves;
+    
+    public static final int NumRowsLookAhead = 5;
+	public static final double MAX= Double.MAX_VALUE;
+	public static final double gapCostForLongerWidth = 1;
 	
 	//Debug use
 	int turn = 0;
     
 	//implement this function to have a working system
 	public int pickMove(State s, int[][] legalMoves) {
-		turn ++;
+        //Debug use
+        turn ++;
         
         //initialization of variables
-		int[][][] topFields = new int[F][State.ROWS][State.COLS];
-		int[][] topTops = new int[F][State.COLS];
-		int[] topMove = new int[F];
-		double[] topCost = new double[F];
-		for (int i = 0; i<5; i++) {
-			topCost[i] = Integer.MAX_VALUE;
-		}
-		int[][] oldField = s.getField();
+		int[][][] topFields = new int[NumRowsLookAhead][State.ROWS][State.COLS];
+		int[][] topTops = new int[NumRowsLookAhead][State.COLS];
+		int[] topMove = new int[NumRowsLookAhead];
+		double[] topCost = new double[NumRowsLookAhead];
+        int[][] oldField = s.getField();
 		int[] oldTop = s.getTop();
-		
         double minCost = MAX;
         int minCostMove =0, maxHeight = 0;
-		for (int i= 0; i< legalMoves.length; i++) {
-			
+        
+        for (int i = 0; i<5; i++) {
+			topCost[i] = Integer.MAX_VALUE;
+		}
+		
+        for (int i= 0; i< legalMoves.length; i++) {
 			int[] top = new int[State.COLS];
 			int[][] field = new int[State.ROWS][State.COLS];
 			
@@ -56,10 +54,10 @@ public class PlayerSkeleton {
 				for (int k = 0; k<State.COLS; k++)
 					field[j][k] = oldField[j][k];
 			
-            //w(s)
+            //cost for rows cleared or game ended
 		 	double cost = computeMoveCost(s.nextPiece, legalMoves[i][State.ORIENT], legalMoves[i][State.SLOT], field, top, s.getTurnNumber()+1);
 			
-            //all other terms except w(s)
+            //cost for all other factors
 			cost += computeStateCost(field,top, turn);
             
 			int highestRow = 0;
@@ -73,48 +71,40 @@ public class PlayerSkeleton {
                 maxHeight = highestRow;
             }
 			
-            
-			int k = -1;
-			for (int j= 0; j<F; j++)
+			int indexToReplace = -1;
+			for (int j= 0; j<NumRowsLookAhead; j++)
 				if (cost < topCost[j]) {
-					if (k == -1  || topCost[j]>topCost[k]) k = j;
+					if (indexToReplace == -1  || topCost[j]>topCost[indexToReplace]) indexToReplace = j;
 				}
 			
-			if (! (k== -1)) {
-                //topCost[k] is the maximum cost in top best 5 that is larger than cost
-				topMove[k] = i;
-				topCost[k] = cost;
-				topTops[k] = top;
-				topFields[k] = field;
+			if (! (indexToReplace== -1)) {
+				topMove[indexToReplace] = i;
+				topCost[indexToReplace] = cost;
+				topTops[indexToReplace] = top;
+				topFields[indexToReplace] = field;
 			}
 		}
 		
-		if (maxHeight >= State.ROWS-5) 	{
-			minCostMove = getLookForwardResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+		if (maxHeight >= State.ROWS-NumRowsLookAhead) 	{
+			minCostMove = bestLookAheadMove(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
 		}
 		return minCostMove;
-        
 	}
 	
-	
-	public int getLookForwardResult(int[] topMove, double[] topCost, int[][] topTops, int[][][] topFields, int turnNumber) {
-		// Look Forward
+	public int bestLookAheadMove(int[] topMove, double[] topCost, int[][] topTops, int[][][] topFields, int turnNumber) {
 		double bestAmortizedCost = MAX, bestMoveCost;
 		int bestAmortizedMove = 0;
 		
-		for (int i = 0; i<F; i++) {
-			
-            
-            
+		for (int i = 0; i<NumRowsLookAhead; i++) {
             if (topCost[i] != Integer.MAX_VALUE) {
-				// initialize amortized cost
 				double amortizedCost = 0;
 				
 				// Iterate over all possible pieces
 				for (int nextPiece = 0; nextPiece <State.N_PIECES; nextPiece++) {
 					// Iterate over all possible moves given that piece
 					bestMoveCost = Integer.MAX_VALUE;
-					for (int l = 0; l <fullLegalMoves[nextPiece].length; l++ ){
+					
+                    for (int l = 0; l <fullLegalMoves[nextPiece].length; l++ ){
 						int[] top = new int[State.COLS];
 						int[][] field = new int[State.ROWS][State.COLS];
 						
@@ -125,7 +115,6 @@ public class PlayerSkeleton {
 							for (int k = 0; k<State.COLS; k++)
 								field[j][k] = topFields[i][j][k];
 						
-						// The current turn number is S.turnNumber + 2
 						double cost = computeMoveCost(nextPiece, fullLegalMoves[nextPiece][l][State.ORIENT], fullLegalMoves[nextPiece][l][State.SLOT], field, top, turnNumber);
 						cost += computeStateCost(field,top, turn);
 						
@@ -142,10 +131,6 @@ public class PlayerSkeleton {
 					bestAmortizedMove= i;
 				}
 			}
-            
-            
-            
-            
         }
 		
 		return topMove[bestAmortizedMove];
@@ -159,11 +144,10 @@ public class PlayerSkeleton {
 			return rowsCleared * ROWSCLEARED;
 		}
 	}
-	
-	
+    
 	public double computeStateCost(int[][] field, int[] top, int turn) {
 		double[] costOfEachRow = new double[State.ROWS];
-		double cost = 0;
+		double stateCost = 0;
 		int highestRow = 0;
 		
 		int pieceMaxY = 0;
@@ -181,14 +165,13 @@ public class PlayerSkeleton {
 		// Landing Height
         double height = 0.0;
         height = 0.5 * (double)( pieceMinY + pieceMaxY );
-		cost += LANDINGHEIGHT * height;
-        
+		stateCost += LANDINGHEIGHT * height;
         
 		// Calculate the cost of each column
 		for (int j = 0; j<State.COLS; j++) {
 			if (top[j] > highestRow) highestRow = top[j];
-			cost += COLTRANSITIONS * getTransitionCountForColumn(field, j, top[j]);
-			cost += WELLS * getAllWellsForColumn(field, j);
+			stateCost += COLTRANSITIONS * getTransitionCountForColumn(field, j, top[j]);
+			stateCost += WELLS * getAllWellsForColumn(field, j);
 		}
 		
 		// Calculate the cost of each row
@@ -197,47 +180,46 @@ public class PlayerSkeleton {
 			costOfEachRow[j] +=  cost1;
 			double cost2 = ROWTRANSITIONS * getTransitionCountForRow(field, j);
 			costOfEachRow[j] += cost2;
-			cost += costOfEachRow[j];
+			stateCost += costOfEachRow[j];
 		}
-
-		return cost;
+        
+		return stateCost;
 	}
     
     public double getTransitionCountForColumn(int[][] field, int j, int top) {
     	int transitionCount = 0;
-		int cellA, cellB;
+		int cellUp, cellDown;
         
-        // check cell and neighbor above...
+        // check cell and neighbor above
         for (int r = 0; r < top; r++) {
-            cellA = field[r][j];
-            cellB = field[r+1][j];
+            cellUp = field[r][j];
+            cellDown = field[r+1][j];
             
-            // If a transition from occupied to unoccupied, or
-            // from unoccupied to occupied, then it's a transition.
-            if ((cellA != 0 && cellB == 0) ||
-                (cellA == 0 && cellB != 0)) {
+            // If a transition from occupied to unoccupied, or from unoccupied to occupied, then it's a transition.
+            if ((cellUp != 0 && cellDown == 0) ||
+                (cellUp == 0 && cellDown != 0)) {
             	transitionCount++;
             }
         }
         
         // check transition between bottom-exterior and row Y=1.
-        // (Note: Bottom exterior is implicitly "occupied".)
-        cellA = field[0][j];
-        if (cellA == 0) {
+        // Bottom exterior is implicitly "occupied"
+        cellUp = field[0][j];
+        if (cellUp == 0) {
             transitionCount++;
         }
         
         // check transition between column 'mHeight' and above-exterior.
-        // (Note: Sky above is implicitly UN-"occupied".)
-        cellA = field[State.ROWS - 1][j];
-        if (cellA == 0) {
+        // Sky above is implicitly un-"occupied"
+        cellUp = field[State.ROWS - 1][j];
+        if (cellUp == 0) {
             transitionCount++;
         }
         
         return transitionCount;
     }
     
-    public int getAllWellsForColumn(int[][]field, int c) { // result range: 0..O(Height*mHeight)
+    public int getAllWellsForColumn(int[][]field, int c) {
         int wellValue = 0;
         int cellLeft, cellRight;
         
@@ -265,12 +247,12 @@ public class PlayerSkeleton {
         return wellValue;
     }
     
-    public int getBlanksDownBeforeBlockedForColumn(int[][]field, int c, int topRow) { // result range: 0..topY
+    public int getBlanksDownBeforeBlockedForColumn(int[][]field, int c, int topRow) {
         int totalBlanksBeforeBlocked = 0;
         int cellValue;
         
-        for (int r = topRow; r >= 0; r-- ) {
-            cellValue = field[r][c];
+        for (int row = topRow; row >= 0; row-- ) {
+            cellValue = field[row][c];
             
             if (cellValue != 0) {
                 return totalBlanksBeforeBlocked;
@@ -284,32 +266,31 @@ public class PlayerSkeleton {
     
     public double getTransitionCountForRow(int[][] field, int j) {
     	int transitionCount = 0;
-		int cellA, cellB;
+		int cellLeft, cellRight;
         
-        // check cell and neighbor to right...
         for (int c = 0; c < State.COLS - 1; c++ ) {
-            cellA = field[j][c];
-            cellB = field[j][c+1];
+            cellLeft = field[j][c];
+            cellRight = field[j][c+1];
             
             // If a transition from occupied to unoccupied, or
             // from unoccupied to occupied, then it's a transition.
-            if ((cellA != 0 && cellB == 0) ||
-            	(cellA == 0 && cellB != 0)) {
+            if ((cellLeft != 0 && cellRight == 0) ||
+            	(cellLeft == 0 && cellRight != 0)) {
                 transitionCount++;
             }
         }
         
         // check transition between left-exterior and column 1.
-        // (Note: Exterior is implicitly "occupied".)
-        cellA = field[j][0];
-        if (cellA == 0) {
+        // Note: Exterior is implicitly "occupied".
+        cellLeft = field[j][0];
+        if (cellLeft == 0) {
             transitionCount++;
         }
         
         // check transition between column 'mWidth' and right-exterior.
         // (NOTE: Exterior is implicitly "occupied".)
-        cellA = field[j][State.COLS-1];
-        if (cellA == 0) {
+        cellLeft = field[j][State.COLS-1];
+        if (cellLeft == 0) {
             transitionCount++;
         }
         
@@ -319,8 +300,10 @@ public class PlayerSkeleton {
     public double getCostOfWellTop(int width, int[][] field, int[] top) {
 		double cost = 0;
 		int topBottom = 0;
+        
 		for (int i = 0; i<State.COLS-width+1; i++) {
 			topBottom = 0;
+            
 			for (int j=i; j<=i+width-1; j++){
 				topBottom = max(topBottom, top[j]);
 			}
@@ -333,14 +316,12 @@ public class PlayerSkeleton {
 				if (minSideTop - topBottom >=3) {
 					cost += ((minSideTop -topBottom) *0.88);
 				}
-				//System.out.println( width + "  " + i+" "+leftTop + "  "+ rightTop + "  " +topBottom +" detected!!!");
 			}
 		}
 		return cost;
 	}
     
 	// The method returns number of rows cleared. If the game fails, it returns -1.
-	// The parameter field is modified;
 	public int makeMove(int nextPiece, int orient, int slot, int[][] field, int[] top, int turn) {
 		int[][][] pBottom = State.getpBottom();
 		int[][][] pTop = State.getpTop();
@@ -349,20 +330,19 @@ public class PlayerSkeleton {
 		
 		//height if the first column makes contact
 		int height = top[slot]-pBottom[nextPiece][orient][0];
+        
 		//for each column beyond the first in the piece
 		for(int c = 1; c < pWidth[nextPiece][orient];c++) {
 			height = Math.max(height,top[slot+c]-pBottom[nextPiece][orient][c]);
 		}
 		
-		//check if game ended
+		//check whether game ended
 		if(height+pHeight[nextPiece][orient] >= State.ROWS) {
 			return -1;
 		}
         
-		
 		//for each column in the piece - fill in the appropriate blocks
 		for(int i = 0; i < pWidth[nextPiece][orient]; i++) {
-			
 			//from bottom to top of brick
 			for(int h = height+pBottom[nextPiece][orient][i]; h < height+pTop[nextPiece][orient][i]; h++) {
 				field[h][i+slot] = turn;
@@ -386,6 +366,7 @@ public class PlayerSkeleton {
 					break;
 				}
 			}
+            
 			//if the row was full - remove it and slide above stuff down
 			if(full) {
 				rowsCleared++;
@@ -396,6 +377,7 @@ public class PlayerSkeleton {
 					for(int i = r; i < top[c]; i++) {
 						field[i][c] = field[i+1][c];
 					}
+                    
 					//lower the top
 					top[c]--;
 					while(top[c]>=1 && field[top[c]-1][c]==0)	top[c]--;
@@ -409,10 +391,11 @@ public class PlayerSkeleton {
 	private int max(int a, int b){
 	    return a>b? a:b;
 	}
+    
 	private int min(int a, int b){
 	    return a<b? a:b;
 	}
-
+    
 	// The function returns the number of holes detected in a specific row
 	public int getNumberOfHoles(int[][] field, int row) {
 		if(row < 0){
@@ -439,7 +422,7 @@ public class PlayerSkeleton {
 			return holeNum;
 		}
 	}
-
+    
 	private Boolean isHole(int field[][],int row,int col){
 		int pieceIndicator = field[row][col];
 		
@@ -456,7 +439,7 @@ public class PlayerSkeleton {
 				return true;
 			}
 		}
-		
+        
 		return false;
 	}
 	
@@ -478,20 +461,6 @@ public class PlayerSkeleton {
 	}
 	
 	public double getRandomAtPosition(int k) {
-        //		switch (k) {
-        //			case 0: return Math.random()*15-10; // ALPHA -10~5
-        //			case 1: return Math.random()*20+10; // B 10~30
-        //			case 2: return Math.random()*8-2; // A -2~6
-        //			case 3: return Math.random()*5-2; // W -2~3
-        //			case 4: return Math.random()*4-1; // C -1~3
-        //			case 5:
-        //			case 6:
-        //			case 7: return Math.random()*2;
-        //		};
-        //		if (k == 1) {
-        //			return Math.random()*10-5;
-        //		} else return Math.random()*15-5;
-		
 		double range = lowerUpperBound[k][1] -lowerUpperBound[k][0];
 		return Math.random()*range + lowerUpperBound[k][0];
 	}
@@ -600,14 +569,8 @@ public class PlayerSkeleton {
 		}
 		
 	}
+    
 	public void setParameter(double[] parameter) {
-        //		public static double LANDINGHEIGHT = 4.500158825082766;
-        //		public static double ROWSCLEARED = -3.4181268101392694;
-        //		public static double ROWTRANSITIONS = 3.2178882868487753;
-        //		public static double COLTRANSITIONS = 9.348695305445199;
-        //		public static double HOLES = 7.899265427351652;
-        //		public static double WELLS = 3.3855972247263626;
-		
 		LANDINGHEIGHT = parameter[0];
 		ROWSCLEARED = parameter[1];
 		ROWTRANSITIONS = parameter[2];
@@ -639,7 +602,6 @@ public class PlayerSkeleton {
 		}
 		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
 	}
-	
 	
 	public int getAverageLinesCleared (int testNum) {
 		double [] ans = getAverageLinesClearedWithSd(testNum);
@@ -678,7 +640,6 @@ public class PlayerSkeleton {
     
 	public static void main(String[] args) {
 		PlayerSkeleton p = new PlayerSkeleton();
-		//p.runPSO();
 		p.playWithVisual(0);
 	}
 }
