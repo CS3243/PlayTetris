@@ -619,14 +619,14 @@ public class PlayerSkeleton {
 	
 	public void playWithVisual(int sleepAmount) {
 		State s = new State();
-		new TFrame(s);
+		//new TFrame(s);
 		int i=1;
 		while(!s.hasLost()) {
 			int t = pickMove(s,s.legalMoves());
             
 			s.makeMove(t);
-			s.draw();
-			s.drawNext(0,0);
+			//s.draw();
+			//s.drawNext(0,0);
 			try {
 				Thread.sleep(sleepAmount/100);
 			} catch (InterruptedException e) {
