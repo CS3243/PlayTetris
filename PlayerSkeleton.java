@@ -86,12 +86,12 @@ public class PlayerSkeleton {
 		}
 		
 		if (maxHeight >= State.ROWS-NumRowsLookAhead) 	{
-			minCostMove = getLookAheadResult(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
+			minCostMove = bestLookAheadMove(topMove, topCost, topTops, topFields, s.getTurnNumber()+2);
 		}
 		return minCostMove;
 	}
 	
-	public int getLookAheadResult(int[] topMove, double[] topCost, int[][] topTops, int[][][] topFields, int turnNumber) {
+	public int bestLookAheadMove(int[] topMove, double[] topCost, int[][] topTops, int[][][] topFields, int turnNumber) {
 		double bestAmortizedCost = MAX, bestMoveCost;
 		int bestAmortizedMove = 0;
 		
