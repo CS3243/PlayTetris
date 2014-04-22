@@ -296,30 +296,6 @@ public class PlayerSkeleton {
         
         return transitionCount;
     }
-	
-    public double getCostOfWellTop(int width, int[][] field, int[] top) {
-		double cost = 0;
-		int topBottom = 0;
-        
-		for (int i = 0; i<State.COLS-width+1; i++) {
-			topBottom = 0;
-            
-			for (int j=i; j<=i+width-1; j++){
-				topBottom = max(topBottom, top[j]);
-			}
-            
-			if (topBottom >=0) {
-				int leftTop, rightTop;
-				if (i-1 <0) leftTop = State.ROWS+1; else leftTop = top[i-1];
-				if (i+width >= State.COLS) rightTop = State.ROWS+1; else rightTop = top[i+width];
-				int minSideTop = min(leftTop, rightTop);
-				if (minSideTop - topBottom >=3) {
-					cost += ((minSideTop -topBottom) *0.88);
-				}
-			}
-		}
-		return cost;
-	}
     
 	// The method returns number of rows cleared. If the game fails, it returns -1.
 	public int makeMove(int nextPiece, int orient, int slot, int[][] field, int[] top, int turn) {
@@ -387,15 +363,7 @@ public class PlayerSkeleton {
 		
 		return rowsCleared;
 	}
-	
-	private int max(int a, int b){
-	    return a>b? a:b;
-	}
-    
-	private int min(int a, int b){
-	    return a<b? a:b;
-	}
-    
+
 	// The function returns the number of holes detected in a specific row
 	public int getNumberOfHoles(int[][] field, int row) {
 		if(row < 0){
