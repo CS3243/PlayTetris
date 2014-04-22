@@ -1,3 +1,5 @@
+import java.io.BufferedWriter;
+import java.io.FileWriter;
 import java.io.PrintWriter;
 import java.lang.Math;
 
@@ -13,8 +15,8 @@ public class PlayerSkeleton {
 	public static double COLTRANSITIONS = 9.348695305445199;
 	public static double HOLES = 7.899265427351652;
 	public static double WELLS = 3.3855972247263626;
-	public double[][] lowerUpperBound = new double[][] {{-5, 5}, {-5, 10}, {-5, 10},
-    {-5, 10}, {-5, 10}, {-5, 10}};
+	public double[][] lowerUpperBound = new double[][] {{-2, 12}, {-6, 6}, {-2, 12},
+    {-2, 12}, {-2, 12}, {-2, 12}};
 	public static int [][][] fullLegalMoves = State.legalMoves;
     
     public static final int NumRowsLookAhead = 5;
@@ -139,7 +141,7 @@ public class PlayerSkeleton {
 	public double computeMoveCost(int nextPiece, int orient, int slot, int[][] field, int[]top, int turn) {
         int rowsCleared = makeMove(nextPiece, orient, slot, field, top, turn);
 		if (rowsCleared == -1) {
-			return Integer.MAX_VALUE;
+			return MAX;
 		} else {
 			return rowsCleared * ROWSCLEARED;
 		}
@@ -411,28 +413,16 @@ public class PlayerSkeleton {
 		return false;
 	}
 	
-	public void playWithSpaceKey() {
-		State s = new State();
-		new TFrame(s);
-        
-		while(!s.hasLost()) {
-			if (s.spacePressed) {
-				int t = pickMove(s,s.legalMoves());
-				s.makeMove(t);
-				s.draw();
-				s.drawNext(0,0);
-				s.spacePressed = false;
-			}
-		}
-        
-		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
-	}
 	
+	// This function returns a random value that is within the range specified for 
+	// the kth parameter
 	public double getRandomAtPosition(int k) {
 		double range = lowerUpperBound[k][1] -lowerUpperBound[k][0];
 		return Math.random()*range + lowerUpperBound[k][0];
 	}
 	
+	
+	// This function performs particle swamp optimization for the six parameters
 	public void runPSO() {
 		int S = 63;
 		int numTestCase = 10;
@@ -464,7 +454,9 @@ public class PlayerSkeleton {
 				optimalParameter = p[i];
 			}
 		}
+		setParameter(optimalParameter);
 		System.out.println(optimal);
+		outputParameter();
 		
 		// Iterate
 		for (int it = 0; it < 10; it++) {
@@ -493,10 +485,6 @@ public class PlayerSkeleton {
 					System.out.println(res);
 					optimalParameter = x[i];
 					outputParameter();
-					if (toFile) {
-						writer.println(optimal);
-					}
-					writer.close();
 				}
 			}
 		}
@@ -527,6 +515,8 @@ public class PlayerSkeleton {
 		return ans;
 	}
 	
+	// This function outputs the current parameter setting.
+	// If toFile flag is true, it will output to a file
 	public void outputParameter() {
 		if (toFile) {
 			writer.println("LH = " + LANDINGHEIGHT + " RC = "+ROWSCLEARED + " RT = "+ROWTRANSITIONS
@@ -534,8 +524,17 @@ public class PlayerSkeleton {
 		} else {
 			System.out.println("LH = " + LANDINGHEIGHT + " RC = "+ROWSCLEARED + " RT = "+ROWTRANSITIONS
                                +" CT = " +COLTRANSITIONS + " H = " + HOLES + " W = "+ WELLS);
+		}	
+	}
+	
+	public void setWriteToFile(String fileName) {
+		this.toFile = true;
+		this.fileName = fileName;
+		try {
+			writer = new PrintWriter(new BufferedWriter(new FileWriter(fileName, true)));
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
 		}
-		
 	}
     
 	public void setParameter(double[] parameter) {
@@ -544,28 +543,23 @@ public class PlayerSkeleton {
 		ROWTRANSITIONS = parameter[2];
 		COLTRANSITIONS = parameter[3];
 		HOLES = parameter[4];
-		WELLS = parameter[5];
-		
+		WELLS = parameter[5];	
 	}
 	
+	// This function displays the result for each move
+	// sleepAmountis the amount of time the thread sleeps
 	public void playWithVisual(int sleepAmount) {
 		State s = new State();
-		//new TFrame(s);
-		int i=1;
+		new TFrame(s);
 		while(!s.hasLost()) {
 			int t = pickMove(s,s.legalMoves());
-            
 			s.makeMove(t);
-			//s.draw();
-			//s.drawNext(0,0);
+			s.draw();
+			s.drawNext(0,0);
 			try {
-				Thread.sleep(sleepAmount/100);
+				Thread.sleep(sleepAmount);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
-			}
-			if(s.getRowsCleared() > i * 5000){
-				System.out.println("For now, the number of rows cleared is:" + s.getRowsCleared());
-				i ++;
 			}
 		}
 		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
@@ -607,7 +601,19 @@ public class PlayerSkeleton {
 	}
     
 	public static void main(String[] args) {
+		State s = new State();
+		new TFrame(s);
 		PlayerSkeleton p = new PlayerSkeleton();
-		p.playWithVisual(0);
+		while(!s.hasLost()) {
+			s.makeMove(p.pickMove(s,s.legalMoves()));
+			s.draw();
+			s.drawNext(0,0);
+			try {
+				Thread.sleep(300);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		System.out.println("You have completed "+s.getRowsCleared()+" rows.");
 	}
 }
